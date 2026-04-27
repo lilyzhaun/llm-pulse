@@ -430,7 +430,7 @@ ul {
 
 .toolbar-chip--refreshing strong {
   position: relative;
-  color: var(--available);
+  color: var(--text-dim);
 }
 
 .toolbar-chip--refreshing::after {
@@ -438,7 +438,7 @@ ul {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid var(--available);
+  border: 1px solid var(--border-strong);
   opacity: 0.55;
   animation: toolbar-chip-pulse 900ms ease-out infinite;
   pointer-events: none;
