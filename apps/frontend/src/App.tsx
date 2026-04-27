@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { Dashboard } from "./pages/Dashboard";
 
@@ -32,9 +32,73 @@ function getStoredThemePreference(): ThemeMode | null {
   }
 }
 
+type ViewTransitionHandle = {
+  ready: Promise<void>;
+  finished: Promise<void>;
+};
+
+type DocumentWithViewTransitions = Document & {
+  startViewTransition?: (
+    callback: () => void | Promise<void>,
+  ) => ViewTransitionHandle;
+};
+
 function applyTheme(theme: ThemeMode) {
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+}
+
+interface RippleOrigin {
+  x: number;
+  y: number;
+}
+
+function applyThemeWithTransition(
+  theme: ThemeMode,
+  origin: RippleOrigin | undefined,
+  commit: () => void,
+) {
+  const documentWithViewTransitions = document as DocumentWithViewTransitions;
+  const startViewTransition =
+    documentWithViewTransitions.startViewTransition?.bind(
+      documentWithViewTransitions,
+    );
+
+  if (
+    !startViewTransition ||
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
+  ) {
+    applyTheme(theme);
+    commit();
+    return;
+  }
+
+  const root = document.documentElement;
+  const originX = origin?.x ?? window.innerWidth / 2;
+  const originY = origin?.y ?? window.innerHeight / 2;
+  const maxRadius = Math.hypot(
+    Math.max(originX, window.innerWidth - originX),
+    Math.max(originY, window.innerHeight - originY),
+  );
+
+  root.style.setProperty("--theme-ripple-x", `${originX}px`);
+  root.style.setProperty("--theme-ripple-y", `${originY}px`);
+  root.style.setProperty("--theme-ripple-radius", `${maxRadius}px`);
+  root.dataset.themeTransition = "ripple";
+
+  const transition = startViewTransition(() => {
+    applyTheme(theme);
+    commit();
+  });
+
+  const cleanup = () => {
+    delete root.dataset.themeTransition;
+    root.style.removeProperty("--theme-ripple-x");
+    root.style.removeProperty("--theme-ripple-y");
+    root.style.removeProperty("--theme-ripple-radius");
+  };
+
+  void transition.finished.then(cleanup, cleanup);
 }
 
 export default function App() {
@@ -62,8 +126,15 @@ export default function App() {
 
   const resolvedTheme = themePreference ?? systemTheme;
   const nextTheme = resolvedTheme === "dark" ? "light" : "dark";
+  const isFirstThemeApplyRef = useRef(true);
 
   useEffect(() => {
+    if (isFirstThemeApplyRef.current) {
+      isFirstThemeApplyRef.current = false;
+      applyTheme(resolvedTheme);
+      return;
+    }
+
     applyTheme(resolvedTheme);
   }, [resolvedTheme]);
 
@@ -80,13 +151,19 @@ export default function App() {
     }
   }, [themePreference]);
 
+  const handleToggleTheme = (origin?: { x: number; y: number }) => {
+    applyThemeWithTransition(nextTheme, origin, () => {
+      setThemePreference(nextTheme);
+    });
+  };
+
   return (
     <>
       <Dashboard />
       <ThemeToggle
         currentTheme={resolvedTheme}
         nextTheme={nextTheme}
-        onToggle={() => setThemePreference(nextTheme)}
+        onToggle={handleToggleTheme}
       />
     </>
   );

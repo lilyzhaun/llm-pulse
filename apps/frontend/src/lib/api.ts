@@ -54,13 +54,13 @@ export async function getAvailabilitySnapshot(
   });
 
   if (!response.ok) {
-    throw new Error(`Pulse API responded with ${response.status}`);
+    throw new Error(`Pulse API 返回 ${response.status}`);
   }
 
   const payload: unknown = await response.json();
 
   if (!isAvailabilityResponse(payload)) {
-    throw new Error("Pulse API returned an unexpected payload.");
+    throw new Error("Pulse API 返回格式不正确。");
   }
 
   return payload;

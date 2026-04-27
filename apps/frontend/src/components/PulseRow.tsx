@@ -10,7 +10,7 @@ function formatPercent(value: number) {
 }
 
 function formatLatency(value: number | null) {
-  return value === null ? "—" : `${value.toFixed(1)}s`;
+  return value === null ? "暂无" : `${value.toFixed(1)}s`;
 }
 
 export function PulseRow({ channel }: PulseRowProps) {
@@ -26,7 +26,7 @@ export function PulseRow({ channel }: PulseRowProps) {
 
       <dl className="pulse-row__metrics">
         <div>
-          <dt>Success rate</dt>
+          <dt>成功率</dt>
           <dd>{formatPercent(channel.successRate)}</dd>
         </div>
         <div>

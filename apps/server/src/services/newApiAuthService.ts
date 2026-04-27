@@ -1,4 +1,5 @@
 import { env } from "../config/env.js";
+import { UpstreamError, ValidationError } from "../errors/AppError.js";
 
 export interface NewApiRequestHeaders {
   Cookie: string;
@@ -12,11 +13,13 @@ export class NewApiAuthService {
 
   async login(): Promise<void> {
     if (!env.newApiBaseUrl) {
-      throw new Error("NEW_API_BASE_URL is required for new-api login");
+      throw new ValidationError(
+        "NEW_API_BASE_URL is required for new-api login",
+      );
     }
 
     if (!env.newApiAdminUsername || !env.newApiAdminPassword) {
-      throw new Error(
+      throw new ValidationError(
         "NEW_API_ADMIN_USERNAME and NEW_API_ADMIN_PASSWORD are required for new-api login",
       );
     }
@@ -35,7 +38,9 @@ export class NewApiAuthService {
 
     if (!response.ok) {
       this.clearSession();
-      throw new Error(`new-api login failed with status ${response.status}`);
+      throw new UpstreamError(
+        `new-api login failed with status ${response.status}`,
+      );
     }
 
     const cookie = this.extractSessionCookie(response.headers);
@@ -44,7 +49,7 @@ export class NewApiAuthService {
 
     if (!cookie || typeof userId !== "number") {
       this.clearSession();
-      throw new Error(
+      throw new UpstreamError(
         "new-api login response did not include a session cookie and user id",
       );
     }
@@ -65,7 +70,7 @@ export class NewApiAuthService {
     await this.ensureSession();
 
     if (!this.sessionCookie || this.userId === null) {
-      throw new Error("new-api session is not available");
+      throw new UpstreamError("new-api session is not available");
     }
 
     return {

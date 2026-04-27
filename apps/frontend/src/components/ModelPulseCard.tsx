@@ -1,16 +1,30 @@
+import type { HeartbeatBucket, ModelAvailability } from "@llm-pulse/shared";
 import {
+  type CSSProperties,
   memo,
   useEffect,
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from "react";
-import type { HeartbeatBucket, ModelAvailability } from "@llm-pulse/shared";
 import { StatusBadge } from "./StatusBadge";
 
 export interface ModelPulseCardProps {
   model: ModelAvailability;
+}
+
+const DESKTOP_HEARTBEAT_SLOT_COUNT = 60;
+const MOBILE_HEARTBEAT_SLOT_COUNT = 30;
+const MOBILE_HEARTBEAT_QUERY = "(max-width: 720px)";
+
+function getHeartbeatSlotCount() {
+  if (typeof window === "undefined") {
+    return DESKTOP_HEARTBEAT_SLOT_COUNT;
+  }
+
+  return window.matchMedia(MOBILE_HEARTBEAT_QUERY).matches
+    ? MOBILE_HEARTBEAT_SLOT_COUNT
+    : DESKTOP_HEARTBEAT_SLOT_COUNT;
 }
 
 function formatPercent(value: number) {
@@ -22,22 +36,33 @@ function formatNullablePercent(value: number | null) {
 }
 
 function formatLatencyLabel(value: number | null) {
-  return value === null ? "平均延迟 暂无" : `平均延迟 ${value.toFixed(1)}s`;
+  return value === null ? "Latency 暂无" : `Latency ${value.toFixed(1)}s`;
+}
+
+function formatStatusLabel(status: HeartbeatBucket["status"]) {
+  const labels: Record<HeartbeatBucket["status"], string> = {
+    available: "可用",
+    degraded: "降级",
+    unavailable: "不可用",
+    unknown: "暂无",
+  };
+
+  return labels[status];
 }
 
 function formatRelativeTimestamp(value: string | null) {
   if (!value) {
-    return "暂无活动";
+    return "暂无 Request";
   }
 
   const date = new Date(value);
 
   return Number.isNaN(date.getTime())
-    ? "暂无活动"
-    : `${date.toLocaleTimeString("zh-CN", {
+    ? "暂无 Request"
+    : `最近一次 Request : ${date.toLocaleTimeString("zh-CN", {
         hour: "2-digit",
         minute: "2-digit",
-      })} 更新`;
+      })}`;
 }
 
 function formatBeatTime(value: string) {
@@ -56,12 +81,12 @@ function formatBeatTime(value: string) {
 function formatBeatTooltip(beat: HeartbeatBucket) {
   const latency =
     beat.averageLatencySeconds === null
-      ? "暂无延迟"
-      : `延迟 ${beat.averageLatencySeconds.toFixed(1)}s`;
+      ? "Latency 暂无"
+      : `Latency ${beat.averageLatencySeconds.toFixed(1)}s`;
 
   return [
-    `${formatBeatTime(beat.start)} · ${beat.status}`,
-    `${beat.totalCount} 次请求`,
+    `${formatBeatTime(beat.start)} · ${formatStatusLabel(beat.status)}`,
+    `Requests ${beat.totalCount}`,
     `成功率 ${formatPercent(beat.successRate)}`,
     latency,
   ].join("\n");
@@ -70,23 +95,48 @@ function formatBeatTooltip(beat: HeartbeatBucket) {
 function formatBeatSummary(beat: HeartbeatBucket) {
   return {
     time: formatBeatTime(beat.start),
-    status: beat.status,
+    status: formatStatusLabel(beat.status),
     requests: beat.totalCount,
     successRate: formatPercent(beat.successRate),
     latency:
       beat.averageLatencySeconds === null
-        ? "暂无延迟"
-        : `延迟 ${beat.averageLatencySeconds.toFixed(1)}s`,
+        ? "Latency 暂无"
+        : `Latency ${beat.averageLatencySeconds.toFixed(1)}s`,
   };
 }
 
+function useHeartbeatSlotCount() {
+  const [slotCount, setSlotCount] = useState(getHeartbeatSlotCount);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(MOBILE_HEARTBEAT_QUERY);
+    const updateSlotCount = () => {
+      setSlotCount(
+        mediaQuery.matches
+          ? MOBILE_HEARTBEAT_SLOT_COUNT
+          : DESKTOP_HEARTBEAT_SLOT_COUNT,
+      );
+    };
+
+    updateSlotCount();
+    mediaQuery.addEventListener("change", updateSlotCount);
+
+    return () => {
+      mediaQuery.removeEventListener("change", updateSlotCount);
+    };
+  }, []);
+
+  return slotCount;
+}
+
 function ModelPulseCardInner({ model }: ModelPulseCardProps) {
-  const latestBeats = model.beats.slice(-30);
+  const heartbeatSlotCount = useHeartbeatSlotCount();
+  const latestBeats = model.beats.slice(-heartbeatSlotCount);
   const maxBeatCount = Math.max(
     ...latestBeats.map((beat) => beat.totalCount),
     1,
   );
-  const leadingSlotCount = Math.max(30 - latestBeats.length, 0);
+  const leadingSlotCount = Math.max(heartbeatSlotCount - latestBeats.length, 0);
   const slots: Array<HeartbeatBucket | null> = [
     ...Array.from({ length: leadingSlotCount }, () => null),
     ...latestBeats,
@@ -143,7 +193,7 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
         tabIndex={0}
       >
         <div>
-          <p className="model-card__eyebrow">模型心跳</p>
+          <p className="model-card__eyebrow">Model Heartbeat</p>
           <h3>{model.modelName}</h3>
           <p className="model-card__subtle">
             {formatRelativeTimestamp(
@@ -156,23 +206,25 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
 
       <div className="model-card__overview">
         <div className="metric-tile">
-          <span>健康度</span>
+          <span>Heartbeat</span>
           <strong>
             {formatNullablePercent(model.heartbeat.availabilityRate)}
           </strong>
         </div>
         <div className="metric-tile">
-          <span>请求数</span>
+          <span>Requests</span>
           <strong>{model.totalCount}</strong>
         </div>
       </div>
 
       <section
         className="heartbeat-board"
-        aria-label={`${model.modelName} recent heartbeat`}
+        aria-label={`${model.modelName} 最近 Heartbeat`}
+        data-beat-count={latestBeats.length}
+        data-slot-count={heartbeatSlotCount}
       >
         <div className="heartbeat-board__header">
-          <p>最近活跃分钟</p>
+          <p>近 {heartbeatSlotCount} 分钟</p>
           <p>{formatLatencyLabel(model.averageLatencySeconds)}</p>
         </div>
 
@@ -181,7 +233,7 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
             className="heartbeat-board__bars"
             style={
               {
-                "--beat-count": `30`,
+                "--beat-count": `${heartbeatSlotCount}`,
               } as CSSProperties
             }
           >
@@ -228,28 +280,33 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
           >
             <strong>{selectedBeatSummary.time}</strong>
             <span>{selectedBeatSummary.status}</span>
-            <span>{selectedBeatSummary.requests} 次请求</span>
+            <span>Requests {selectedBeatSummary.requests}</span>
             <span>成功率 {selectedBeatSummary.successRate}</span>
             <span>{selectedBeatSummary.latency}</span>
           </div>
         ) : null}
       </section>
 
-      {isExpanded ? (
+      <div
+        className={`model-card__summary-wrapper${
+          isExpanded ? " model-card__summary-wrapper--open" : ""
+        }`}
+        aria-hidden={!isExpanded}
+      >
         <dl className="model-card__summary">
           <div>
-            <dt>正常分钟</dt>
+            <dt>可用分钟</dt>
             <dd>{model.heartbeat.healthyBuckets}</dd>
           </div>
           <div>
-            <dt>告警分钟</dt>
+            <dt>异常分钟</dt>
             <dd>
               {model.heartbeat.degradedBuckets +
                 model.heartbeat.unavailableBuckets}
             </dd>
           </div>
         </dl>
-      ) : null}
+      </div>
     </article>
   );
 }

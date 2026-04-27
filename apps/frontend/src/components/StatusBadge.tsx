@@ -1,10 +1,10 @@
 import type { AvailabilityStatus } from "@llm-pulse/shared";
 
 const LABELS: Record<AvailabilityStatus, string> = {
-  available: "正常",
-  degraded: "异常偏高",
-  unavailable: "异常",
-  unknown: "无数据",
+  available: "可用",
+  degraded: "降级",
+  unavailable: "不可用",
+  unknown: "暂无",
 };
 
 export interface StatusBadgeProps {

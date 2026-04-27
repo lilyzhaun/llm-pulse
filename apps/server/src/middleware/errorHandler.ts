@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { isProduction } from "../config/env.js";
+import { AppError } from "../errors/AppError.js";
 
 export const notFoundHandler: RequestHandler = (request, response) => {
   response.status(404).json({
@@ -15,6 +16,15 @@ export const errorHandler: ErrorRequestHandler = (
   response,
   _next,
 ) => {
+  if (error instanceof AppError) {
+    response.status(error.statusCode).json({
+      error: {
+        message: isProduction ? "Internal server error" : error.message,
+      },
+    });
+    return;
+  }
+
   const message =
     error instanceof Error ? error.message : "Unexpected server error";
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildAvailabilityResponseForLogs,
   type AggregationLog,
+  buildAvailabilityResponseForLogs,
 } from "../../src/services/aggregationService.js";
 
 const GENERATED_AT = "2024-01-01T00:05:00.000Z";

@@ -11,9 +11,9 @@ import type {
 import { cacheService } from "./cacheService.js";
 import { normalizationService } from "./normalizationService.js";
 import {
-  persistenceService,
   type PersistedPulseLog,
   type PersistedPulseState,
+  persistenceService,
 } from "./persistenceService.js";
 
 const nowIso = () => new Date().toISOString();
@@ -22,7 +22,7 @@ const AGGREGATED_PULSE_CACHE_KEY = "aggregated-pulse";
 const RECENT_LOGS_CACHE_KEY = "recent-logs";
 const POLL_STATUS_CACHE_KEY = "poll-status";
 const HEARTBEAT_BUCKET_SECONDS = 60;
-const HEARTBEAT_BUCKET_COUNT = 30;
+const HEARTBEAT_BUCKET_COUNT = 60;
 const MODEL_LOG_RETENTION_COUNT = 60;
 
 interface PollStatusSnapshot {

@@ -1,7 +1,7 @@
 export interface ThemeToggleProps {
   currentTheme: "light" | "dark";
   nextTheme: "light" | "dark";
-  onToggle: () => void;
+  onToggle: (origin?: { x: number; y: number }) => void;
 }
 
 export function ThemeToggle({
@@ -9,15 +9,20 @@ export function ThemeToggle({
   nextTheme,
   onToggle,
 }: ThemeToggleProps) {
-  const switchLabel =
-    nextTheme === "light" ? "切换到浅色主题" : "切换到深色主题";
+  const switchLabel = nextTheme === "light" ? "切换到 Light" : "切换到 Dark";
 
   return (
     <button
       aria-label={switchLabel}
       aria-pressed={currentTheme === "dark"}
       className="theme-toggle"
-      onClick={onToggle}
+      onClick={(event) => {
+        const target = event.currentTarget.getBoundingClientRect();
+        onToggle({
+          x: target.left + target.width / 2,
+          y: target.top + target.height / 2,
+        });
+      }}
       title={switchLabel}
       type="button"
     >
@@ -25,7 +30,7 @@ export function ThemeToggle({
         {currentTheme === "dark" ? "☾" : "☼"}
       </span>
       <span className="theme-toggle__label">
-        {currentTheme === "dark" ? "深色" : "浅色"}
+        {currentTheme === "dark" ? "Dark" : "Light"}
       </span>
     </button>
   );

@@ -2,17 +2,22 @@ import type { AvailabilityResponse } from "@llm-pulse/shared";
 
 export interface ToolbarProps {
   snapshot: AvailabilityResponse;
+  modelSearchQuery: string;
+  onModelSearchQueryChange: (value: string) => void;
+  isRefreshing: boolean;
+  canRefresh: boolean;
+  onRefresh: () => void;
 }
 
 function formatHeartbeatWindow(bucketCount: number) {
-  return `最近 ${bucketCount} 个活跃分钟`;
+  return `近 ${bucketCount} 分钟`;
 }
 
 function formatGeneratedAt(value: string) {
   const date = new Date(value);
 
   if (Number.isNaN(date.getTime())) {
-    return "等待快照";
+    return "无 Snapshot";
   }
 
   return `${date.toLocaleTimeString("zh-CN", {
@@ -22,29 +27,66 @@ function formatGeneratedAt(value: string) {
   })}`;
 }
 
-export function Toolbar({ snapshot }: ToolbarProps) {
+export function Toolbar({
+  snapshot,
+  modelSearchQuery,
+  onModelSearchQueryChange,
+  isRefreshing,
+  canRefresh,
+  onRefresh,
+}: ToolbarProps) {
+  const snapshotChipLabel = isRefreshing
+    ? "刷新中…"
+    : canRefresh
+      ? "点击刷新"
+      : "稍候再刷新";
+
   return (
     <section className="toolbar">
       <div>
-        <p className="toolbar__eyebrow">模型状态</p>
+        <p className="toolbar__eyebrow">Model 状态</p>
         <h1>LLM Pulse</h1>
-        <p className="toolbar__description">最近一小时活跃模型总览。</p>
+        <p className="toolbar__description">近一小时 Model 可用性。</p>
       </div>
 
-      <div className="toolbar__meta" aria-label="顶部统计">
-        <div className="toolbar-chip">
-          <span>模型数</span>
-          <strong>{snapshot.summary.totalModels}</strong>
-        </div>
-        <div className="toolbar-chip">
-          <span>心跳窗口</span>
-          <strong>
-            {formatHeartbeatWindow(snapshot.heartbeat.bucketCount)}
-          </strong>
-        </div>
-        <div className="toolbar-chip">
-          <span>快照时间</span>
-          <strong>{formatGeneratedAt(snapshot.generatedAt)}</strong>
+      <div className="toolbar__controls">
+        <label className="toolbar-search" htmlFor="model-search-input">
+          <span className="toolbar-search__label">搜索 Model</span>
+          <input
+            id="model-search-input"
+            className="toolbar-search__input"
+            type="search"
+            value={modelSearchQuery}
+            onChange={(event) => onModelSearchQueryChange(event.target.value)}
+            placeholder="输入模型名关键词"
+            autoComplete="off"
+          />
+        </label>
+
+        <div className="toolbar__meta" aria-label="Dashboard 概览">
+          <div className="toolbar-chip">
+            <span>Models</span>
+            <strong>{snapshot.summary.totalModels}</strong>
+          </div>
+          <div className="toolbar-chip">
+            <span>Heartbeat</span>
+            <strong>
+              {formatHeartbeatWindow(snapshot.heartbeat.bucketCount)}
+            </strong>
+          </div>
+          <button
+            type="button"
+            className={`toolbar-chip toolbar-chip--button${
+              isRefreshing ? " toolbar-chip--refreshing" : ""
+            }`}
+            onClick={onRefresh}
+            disabled={!canRefresh || isRefreshing}
+            aria-label={`Snapshot ${formatGeneratedAt(snapshot.generatedAt)} · ${snapshotChipLabel}`}
+            title={snapshotChipLabel}
+          >
+            <span>Snapshot</span>
+            <strong>{formatGeneratedAt(snapshot.generatedAt)}</strong>
+          </button>
         </div>
       </div>
     </section>

@@ -1,7 +1,11 @@
-import express, { type Request, type Response } from "express";
 import { existsSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import express, {
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { healthRouter } from "./routes/health.js";
 import { pulseRouter } from "./routes/pulse.js";
@@ -21,6 +25,23 @@ export const createApp = () => {
   app.use("/status/api/pulse", pulseRouter);
 
   if (hasFrontendDist) {
+    app.use((request: Request, _response: Response, next: NextFunction) => {
+      const responseLike = _response as unknown as {
+        setHeader: (name: string, value: string) => void;
+      };
+      if (request.path === "/status/sw.js") {
+        responseLike.setHeader("Cache-Control", "no-cache");
+        responseLike.setHeader("Service-Worker-Allowed", "/status/");
+      } else if (request.path === "/status/manifest.webmanifest") {
+        responseLike.setHeader(
+          "Content-Type",
+          "application/manifest+json; charset=utf-8",
+        );
+        responseLike.setHeader("Cache-Control", "public, max-age=300");
+      }
+      next();
+    });
+
     app.use(
       "/status/assets",
       express.static(resolve(frontendDistDir, "assets")),

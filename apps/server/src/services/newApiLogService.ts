@@ -4,9 +4,10 @@ import type {
   NewApiLogResponse,
 } from "@llm-pulse/shared";
 import { env } from "../config/env.js";
+import { UpstreamError } from "../errors/AppError.js";
 import {
-  newApiAuthService,
   type NewApiAuthService,
+  newApiAuthService,
 } from "./newApiAuthService.js";
 
 export interface FetchRecentLogsOptions {
@@ -17,7 +18,9 @@ export interface FetchRecentLogsOptions {
 
 const buildLogUrl = (query: NewApiLogQuery): URL => {
   if (!env.newApiBaseUrl) {
-    throw new Error("NEW_API_BASE_URL is required for new-api log fetch");
+    throw new UpstreamError(
+      "NEW_API_BASE_URL is required for new-api log fetch",
+    );
   }
 
   const url = new URL("/api/log/", env.newApiBaseUrl);
@@ -79,11 +82,15 @@ export class NewApiLogService {
     await this.authService.ensureSession();
 
     for (let page = 0; page < maxPages; page += 1) {
-      const response = await this.fetchLogPage({
+      const query: NewApiLogQuery = {
         p: page,
         page_size: pageSize,
-        start_timestamp: startTimestamp,
-      });
+      };
+      if (startTimestamp !== undefined) {
+        query.start_timestamp = startTimestamp;
+      }
+
+      const response = await this.fetchLogPage(query);
 
       logs.push(...response.data.items);
 
@@ -128,11 +135,11 @@ export class NewApiLogService {
         payload && typeof payload === "object" && "message" in payload
           ? String(payload.message)
           : response.statusText;
-      throw new Error(`new-api log fetch failed: ${message}`);
+      throw new UpstreamError(`new-api log fetch failed: ${message}`);
     }
 
     if (!isNewApiLogResponse(payload) || !payload.success) {
-      throw new Error(
+      throw new UpstreamError(
         `new-api log response was invalid: ${isNewApiLogResponse(payload) ? payload.message : "unexpected shape"}`,
       );
     }
