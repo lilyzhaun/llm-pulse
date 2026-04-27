@@ -1,0 +1,2183 @@
+{
+  "version": 1,
+  "savedAt": "2026-04-27T13:05:34.691Z",
+  "recentLogs": [
+    {
+      "id": 225846,
+      "created_at": 1777295117,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225845,
+      "created_at": 1777295110,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 25,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225844,
+      "created_at": 1777295097,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225843,
+      "created_at": 1777295095,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225842,
+      "created_at": 1777295090,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 21,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225841,
+      "created_at": 1777295084,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 34,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225840,
+      "created_at": 1777295077,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225839,
+      "created_at": 1777295076,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225838,
+      "created_at": 1777295075,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225837,
+      "created_at": 1777295069,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 20,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225836,
+      "created_at": 1777295050,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 3,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225835,
+      "created_at": 1777295048,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 50,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225834,
+      "created_at": 1777295047,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 17,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225833,
+      "created_at": 1777295031,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 12,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225832,
+      "created_at": 1777295030,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225831,
+      "created_at": 1777295027,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 9,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225830,
+      "created_at": 1777295018,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225829,
+      "created_at": 1777295018,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225828,
+      "created_at": 1777295014,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225827,
+      "created_at": 1777295012,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 13,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225826,
+      "created_at": 1777295011,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225825,
+      "created_at": 1777295004,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 7,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225824,
+      "created_at": 1777294999,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225823,
+      "created_at": 1777294997,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 27,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225822,
+      "created_at": 1777294997,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225821,
+      "created_at": 1777294994,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225820,
+      "created_at": 1777294992,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225819,
+      "created_at": 1777294987,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225818,
+      "created_at": 1777294986,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225817,
+      "created_at": 1777294983,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225816,
+      "created_at": 1777294982,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 13,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225815,
+      "created_at": 1777294980,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225814,
+      "created_at": 1777294977,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225813,
+      "created_at": 1777294975,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225812,
+      "created_at": 1777294968,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 28,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225811,
+      "created_at": 1777294940,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 29,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225810,
+      "created_at": 1777294906,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225809,
+      "created_at": 1777294905,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225808,
+      "created_at": 1777294885,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225807,
+      "created_at": 1777294881,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225806,
+      "created_at": 1777294861,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225805,
+      "created_at": 1777294859,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225804,
+      "created_at": 1777294840,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225803,
+      "created_at": 1777294840,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225802,
+      "created_at": 1777294820,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225801,
+      "created_at": 1777294819,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225800,
+      "created_at": 1777294799,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225799,
+      "created_at": 1777294799,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225798,
+      "created_at": 1777294779,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225797,
+      "created_at": 1777294779,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225796,
+      "created_at": 1777294680,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 12,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225795,
+      "created_at": 1777294596,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225794,
+      "created_at": 1777294596,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225793,
+      "created_at": 1777294575,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225792,
+      "created_at": 1777294574,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225791,
+      "created_at": 1777294554,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225790,
+      "created_at": 1777294552,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225789,
+      "created_at": 1777294545,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225788,
+      "created_at": 1777294534,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225787,
+      "created_at": 1777294532,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225786,
+      "created_at": 1777294530,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225785,
+      "created_at": 1777294512,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225784,
+      "created_at": 1777294511,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225783,
+      "created_at": 1777294492,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225782,
+      "created_at": 1777294486,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225781,
+      "created_at": 1777294467,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225780,
+      "created_at": 1777294466,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225779,
+      "created_at": 1777294436,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225778,
+      "created_at": 1777294417,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 13,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225777,
+      "created_at": 1777294344,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 31,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225776,
+      "created_at": 1777294316,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 10,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225775,
+      "created_at": 1777294312,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 19,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225774,
+      "created_at": 1777294297,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225773,
+      "created_at": 1777294296,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225772,
+      "created_at": 1777294295,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 10,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225771,
+      "created_at": 1777294292,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 18,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225770,
+      "created_at": 1777294291,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225769,
+      "created_at": 1777294284,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 24,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225768,
+      "created_at": 1777294277,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225767,
+      "created_at": 1777294276,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225766,
+      "created_at": 1777294267,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 28,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225765,
+      "created_at": 1777294258,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225764,
+      "created_at": 1777294257,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225763,
+      "created_at": 1777294256,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225762,
+      "created_at": 1777294255,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225761,
+      "created_at": 1777294253,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225760,
+      "created_at": 1777294246,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 40,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225759,
+      "created_at": 1777294238,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 22,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225758,
+      "created_at": 1777294236,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 14,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225757,
+      "created_at": 1777294227,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225756,
+      "created_at": 1777294210,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 13,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225755,
+      "created_at": 1777294208,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225754,
+      "created_at": 1777294206,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225753,
+      "created_at": 1777294197,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 29,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225752,
+      "created_at": 1777294186,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225751,
+      "created_at": 1777294186,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225750,
+      "created_at": 1777294168,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 19,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225749,
+      "created_at": 1777294162,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225748,
+      "created_at": 1777294162,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 10,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225747,
+      "created_at": 1777294159,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225746,
+      "created_at": 1777294155,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225745,
+      "created_at": 1777294149,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225744,
+      "created_at": 1777294149,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 18,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225743,
+      "created_at": 1777294141,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225742,
+      "created_at": 1777294133,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225741,
+      "created_at": 1777294130,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225740,
+      "created_at": 1777294127,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 32,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225739,
+      "created_at": 1777294122,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225738,
+      "created_at": 1777294118,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225737,
+      "created_at": 1777294111,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 10,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225736,
+      "created_at": 1777294104,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225735,
+      "created_at": 1777294104,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225734,
+      "created_at": 1777294101,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225733,
+      "created_at": 1777294094,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225732,
+      "created_at": 1777294094,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225731,
+      "created_at": 1777294089,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225730,
+      "created_at": 1777294089,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225729,
+      "created_at": 1777294088,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 18,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225728,
+      "created_at": 1777294081,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225727,
+      "created_at": 1777294081,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 9,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225726,
+      "created_at": 1777294075,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225725,
+      "created_at": 1777294074,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225724,
+      "created_at": 1777294071,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 29,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225723,
+      "created_at": 1777294069,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225722,
+      "created_at": 1777294069,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225721,
+      "created_at": 1777294066,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225720,
+      "created_at": 1777294064,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225719,
+      "created_at": 1777294062,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 15,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225718,
+      "created_at": 1777294059,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225717,
+      "created_at": 1777294054,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225716,
+      "created_at": 1777294052,
+      "type": 2,
+      "model_name": "glm-5-turbo",
+      "use_time": 40,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225715,
+      "created_at": 1777294047,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225714,
+      "created_at": 1777294047,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225713,
+      "created_at": 1777294042,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 28,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225712,
+      "created_at": 1777294042,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 23,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225711,
+      "created_at": 1777294036,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225710,
+      "created_at": 1777294020,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225709,
+      "created_at": 1777294018,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225708,
+      "created_at": 1777294016,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225707,
+      "created_at": 1777294014,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 7,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225706,
+      "created_at": 1777294011,
+      "type": 2,
+      "model_name": "glm-5-turbo",
+      "use_time": 33,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225705,
+      "created_at": 1777294008,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 9,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225704,
+      "created_at": 1777294007,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225703,
+      "created_at": 1777294004,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 21,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225702,
+      "created_at": 1777294003,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225701,
+      "created_at": 1777293999,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225700,
+      "created_at": 1777293998,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225699,
+      "created_at": 1777293994,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225698,
+      "created_at": 1777293992,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225697,
+      "created_at": 1777293991,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225696,
+      "created_at": 1777293989,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225695,
+      "created_at": 1777293989,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225694,
+      "created_at": 1777293988,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225693,
+      "created_at": 1777293982,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 34,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225692,
+      "created_at": 1777293982,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225691,
+      "created_at": 1777293970,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225690,
+      "created_at": 1777293968,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225689,
+      "created_at": 1777293968,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225688,
+      "created_at": 1777293959,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225687,
+      "created_at": 1777293950,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225686,
+      "created_at": 1777293948,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225685,
+      "created_at": 1777293948,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 26,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225684,
+      "created_at": 1777293945,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225683,
+      "created_at": 1777293945,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225682,
+      "created_at": 1777293943,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225681,
+      "created_at": 1777293938,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225680,
+      "created_at": 1777293931,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 14,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225679,
+      "created_at": 1777293926,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225678,
+      "created_at": 1777293925,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225677,
+      "created_at": 1777293915,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225676,
+      "created_at": 1777293908,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225675,
+      "created_at": 1777293907,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225674,
+      "created_at": 1777293905,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225673,
+      "created_at": 1777293904,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225672,
+      "created_at": 1777293903,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225671,
+      "created_at": 1777293892,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225670,
+      "created_at": 1777293882,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225669,
+      "created_at": 1777293879,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225668,
+      "created_at": 1777293867,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225667,
+      "created_at": 1777293861,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 35,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225666,
+      "created_at": 1777293859,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225665,
+      "created_at": 1777293857,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225664,
+      "created_at": 1777293806,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225663,
+      "created_at": 1777293782,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225662,
+      "created_at": 1777293751,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 2,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225661,
+      "created_at": 1777293724,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 74,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225660,
+      "created_at": 1777293697,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225659,
+      "created_at": 1777293677,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225658,
+      "created_at": 1777293677,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225657,
+      "created_at": 1777293671,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 37,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225656,
+      "created_at": 1777293656,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225655,
+      "created_at": 1777293655,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225654,
+      "created_at": 1777293636,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225653,
+      "created_at": 1777293636,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225652,
+      "created_at": 1777293636,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225651,
+      "created_at": 1777293625,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225650,
+      "created_at": 1777293615,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225649,
+      "created_at": 1777293613,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225648,
+      "created_at": 1777293606,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 22,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225647,
+      "created_at": 1777293592,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225646,
+      "created_at": 1777293591,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225645,
+      "created_at": 1777293584,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225644,
+      "created_at": 1777293580,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 3,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225643,
+      "created_at": 1777293571,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225642,
+      "created_at": 1777293571,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225641,
+      "created_at": 1777293553,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 30,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225640,
+      "created_at": 1777293552,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225639,
+      "created_at": 1777293549,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225638,
+      "created_at": 1777293548,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225637,
+      "created_at": 1777293523,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 22,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225636,
+      "created_at": 1777293500,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 25,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225635,
+      "created_at": 1777293494,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225634,
+      "created_at": 1777293480,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 9,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225633,
+      "created_at": 1777293474,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 28,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225632,
+      "created_at": 1777293468,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 15,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225631,
+      "created_at": 1777293450,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 4,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225630,
+      "created_at": 1777293449,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 14,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225629,
+      "created_at": 1777293449,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 11,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225628,
+      "created_at": 1777293446,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 19,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225627,
+      "created_at": 1777293426,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 21,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225626,
+      "created_at": 1777293410,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225625,
+      "created_at": 1777293404,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 24,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225624,
+      "created_at": 1777293400,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225623,
+      "created_at": 1777293394,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225622,
+      "created_at": 1777293379,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225621,
+      "created_at": 1777293379,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 22,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225620,
+      "created_at": 1777293370,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225619,
+      "created_at": 1777293370,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225618,
+      "created_at": 1777293356,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 20,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225617,
+      "created_at": 1777293355,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225616,
+      "created_at": 1777293351,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 7,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225615,
+      "created_at": 1777293350,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225614,
+      "created_at": 1777293335,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 22,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225613,
+      "created_at": 1777293332,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 19,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225612,
+      "created_at": 1777293330,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225611,
+      "created_at": 1777293328,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 5,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225610,
+      "created_at": 1777293325,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225609,
+      "created_at": 1777293313,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 21,
+      "channel": 2,
+      "channel_name": "dammvip"
+    },
+    {
+      "id": 225608,
+      "created_at": 1777293310,
+      "type": 2,
+      "model_name": "gpt-5.4",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225607,
+      "created_at": 1777293310,
+      "type": 2,
+      "model_name": "gpt-5.3-codex",
+      "use_time": 6,
+      "channel": 1,
+      "channel_name": "dammapi"
+    },
+    {
+      "id": 225606,
+      "created_at": 1777293303,
+      "type": 2,
+      "model_name": "gpt-5.5",
+      "use_time": 8,
+      "channel": 1,
+      "channel_name": "dammapi"
+    }
+  ],
+  "cursor": {
+    "lastSeenTimestamp": 1777295117
+  },
+  "pollStatus": {
+    "lastPollAt": "2026-04-27T13:05:34.690Z",
+    "lastPollSucceeded": true,
+    "lastErrorMessage": null
+  }
+}
