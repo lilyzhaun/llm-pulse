@@ -3,6 +3,10 @@ import { ThemeToggle } from "./components/ThemeToggle";
 import { Dashboard } from "./pages/Dashboard";
 
 const THEME_STORAGE_KEY = "llm-pulse-theme-preference";
+const THEME_COLORS: Record<ThemeMode, string> = {
+  light: "#faf9f5",
+  dark: "#151412",
+};
 
 type ThemeMode = "light" | "dark";
 
@@ -46,6 +50,9 @@ type DocumentWithViewTransitions = Document & {
 function applyTheme(theme: ThemeMode) {
   document.documentElement.dataset.theme = theme;
   document.documentElement.style.colorScheme = theme;
+  document
+    .querySelector('meta[name="theme-color"]')
+    ?.setAttribute("content", THEME_COLORS[theme]);
 }
 
 interface RippleOrigin {

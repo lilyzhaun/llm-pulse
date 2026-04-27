@@ -430,7 +430,7 @@ ul {
 
 .toolbar-chip--refreshing strong {
   position: relative;
-  color: var(--text-dim);
+  color: var(--available);
 }
 
 .toolbar-chip--refreshing::after {
@@ -438,7 +438,7 @@ ul {
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  border: 1px solid var(--border-strong);
+  border: 1px solid var(--available);
   opacity: 0.55;
   animation: toolbar-chip-pulse 900ms ease-out infinite;
   pointer-events: none;
@@ -739,7 +739,6 @@ ul {
   font-size: 0.82rem;
   background: var(--badge-bg);
   border: 1px solid var(--badge-border);
-  color: var(--text-muted);
   white-space: nowrap;
 }
 
@@ -804,7 +803,24 @@ ul {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: var(--badge-border);
+  box-shadow: 0 0 8px currentColor;
+  background: currentColor;
+}
+
+.status-badge--available {
+  color: var(--available);
+}
+
+.status-badge--degraded {
+  color: var(--degraded);
+}
+
+.status-badge--unavailable {
+  color: var(--unavailable);
+}
+
+.status-badge--unknown {
+  color: var(--unknown);
 }
 
 @media (max-width: 1120px) {

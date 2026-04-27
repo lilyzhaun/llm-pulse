@@ -7,7 +7,7 @@
       name="description"
       content="LLM Pulse - Model 可用性 Snapshot Dashboard。"
     />
-    <meta name="theme-color" content="#10b981" />
+    <meta name="theme-color" content="#faf9f5" />
     <meta name="application-name" content="LLM Pulse" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="LLM Pulse" />
@@ -31,16 +31,24 @@
               ? storedValue
               : systemTheme;
 
+          const themeColor = theme === "dark" ? "#151412" : "#faf9f5";
+          const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
           document.documentElement.dataset.theme = theme;
           document.documentElement.style.colorScheme = theme;
+          themeColorMeta?.setAttribute("content", themeColor);
         } catch {
           const fallbackTheme = window.matchMedia("(prefers-color-scheme: dark)")
             .matches
             ? "dark"
             : "light";
+          const fallbackThemeColor =
+            fallbackTheme === "dark" ? "#151412" : "#faf9f5";
+          const themeColorMeta = document.querySelector('meta[name="theme-color"]');
 
           document.documentElement.dataset.theme = fallbackTheme;
           document.documentElement.style.colorScheme = fallbackTheme;
+          themeColorMeta?.setAttribute("content", fallbackThemeColor);
         }
       })();
     </script>
