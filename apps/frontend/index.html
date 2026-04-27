@@ -8,6 +8,34 @@
       content="LLM Pulse - 隐私优先的模型可用性仪表盘前端骨架。"
     />
     <title>LLM Pulse</title>
+    <script>
+      (() => {
+        const storageKey = "llm-pulse-theme-preference";
+
+        try {
+          const storedValue = window.localStorage.getItem(storageKey);
+          const systemTheme = window.matchMedia("(prefers-color-scheme: dark)")
+            .matches
+            ? "dark"
+            : "light";
+          const theme =
+            storedValue === "light" || storedValue === "dark"
+              ? storedValue
+              : systemTheme;
+
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.style.colorScheme = theme;
+        } catch {
+          const fallbackTheme = window.matchMedia("(prefers-color-scheme: dark)")
+            .matches
+            ? "dark"
+            : "light";
+
+          document.documentElement.dataset.theme = fallbackTheme;
+          document.documentElement.style.colorScheme = fallbackTheme;
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
