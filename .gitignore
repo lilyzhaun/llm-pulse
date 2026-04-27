@@ -2,6 +2,9 @@ node_modules/
 dist/
 build/
 coverage/
+apps/server/data/*.sqlite
+apps/server/data/*.sqlite-*
+apps/server/data/*.bak.*
 .env
 .env.*
 !.env.example
