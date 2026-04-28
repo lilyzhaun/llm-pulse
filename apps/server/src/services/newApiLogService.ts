@@ -50,7 +50,7 @@ const isNewApiLogResponse = (value: unknown): value is NewApiLogResponse => {
   );
 };
 
-const dedupeLogs = (logs: NewApiLogItem[]): NewApiLogItem[] => {
+export const dedupeLogs = (logs: NewApiLogItem[]): NewApiLogItem[] => {
   const seenIds = new Set<number>();
 
   return logs.filter((log) => {

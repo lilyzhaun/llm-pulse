@@ -9,22 +9,24 @@ import type {
   NewApiLogItem,
 } from "@llm-pulse/shared";
 import { cacheService } from "./cacheService.js";
+import { logger } from "../lib/logger.js";
 import { normalizationService } from "./normalizationService.js";
 import {
   type PersistedPulseLog,
   type PersistedPulseState,
   persistenceService,
 } from "./persistenceService.js";
+import {
+  HEARTBEAT_BUCKET_COUNT,
+  HEARTBEAT_BUCKET_SECONDS,
+  MODEL_LOG_RETENTION_COUNT,
+} from "../config/constants.js";
 
 const nowIso = () => new Date().toISOString();
 
 const AGGREGATED_PULSE_CACHE_KEY = "aggregated-pulse";
 const RECENT_LOGS_CACHE_KEY = "recent-logs";
 const POLL_STATUS_CACHE_KEY = "poll-status";
-const HEARTBEAT_BUCKET_SECONDS = 60;
-const HEARTBEAT_BUCKET_COUNT = 60;
-const MODEL_LOG_RETENTION_COUNT = 60;
-
 interface PollStatusSnapshot {
   lastPollAt: string;
   lastPollSucceeded: boolean;
@@ -309,7 +311,7 @@ const buildHeartbeatBuckets = (
 const buildHeartbeatBucketsForLogs = (
   logs: AggregationLog[],
 ): HeartbeatBucket[] => {
-  const bucketStarts = collectLatestObservedBucketStartsForLogs(logs);
+  const bucketStarts = collectLatestObservedBucketStarts(logs);
   const bucketIndexMap = new Map<number, number>(
     bucketStarts.map((bucketStart, index) => [bucketStart, index]),
   );
@@ -320,23 +322,6 @@ const buildHeartbeatBucketsForLogs = (
   }
 
   return buildHeartbeatBuckets(accumulators, bucketStarts);
-};
-
-const collectLatestObservedBucketStartsForLogs = (
-  logs: AggregationLog[],
-): number[] => {
-  const bucketStarts = new Set<number>();
-
-  for (const log of logs) {
-    if (!isRequestLog(log)) {
-      continue;
-    }
-    bucketStarts.add(getMinuteBucketStart(log.created_at));
-  }
-
-  return [...bucketStarts]
-    .sort((left, right) => left - right)
-    .slice(-HEARTBEAT_BUCKET_COUNT);
 };
 
 const buildHeartbeatSummary = (beats: HeartbeatBucket[]): HeartbeatSummary => {
@@ -568,7 +553,7 @@ export class AggregationService {
         pollStatus,
       });
     } catch (error) {
-      console.warn("Failed to persist llm-pulse state", error);
+      logger.warn({ error }, "Failed to persist llm-pulse state");
     }
   }
 

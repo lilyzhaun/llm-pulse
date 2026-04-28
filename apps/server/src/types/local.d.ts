@@ -1,8 +1,4 @@
 declare namespace NodeJS {
-  type Signals = "SIGINT" | "SIGTERM";
-
-  interface Timeout {}
-
   interface ProcessEnv {
     NODE_ENV?: string;
     PORT?: string;
@@ -19,80 +15,6 @@ declare namespace NodeJS {
     INITIAL_BACKFILL_MAX_PAGES?: string;
     PULSE_DB_FILE?: string;
   }
-}
-
-declare const process: {
-  env: NodeJS.ProcessEnv;
-  uptime(): number;
-  exit(code?: number): never;
-  on(event: NodeJS.Signals, listener: (signal: NodeJS.Signals) => void): void;
-};
-
-declare const console: {
-  info(message?: unknown, ...optionalParams: unknown[]): void;
-  error(message?: unknown, ...optionalParams: unknown[]): void;
-};
-
-declare function setInterval(
-  handler: () => void,
-  timeout?: number,
-): NodeJS.Timeout;
-declare function clearInterval(timeout: NodeJS.Timeout): void;
-
-declare module "express" {
-  export interface Request {
-    method: string;
-    path: string;
-  }
-
-  export interface Response {
-    status(code: number): Response;
-    json(body: unknown): Response;
-    sendFile(path: string): Response;
-  }
-
-  export type NextFunction = (error?: unknown) => void;
-  export type RequestHandler = (
-    request: Request,
-    response: Response,
-    next: NextFunction,
-  ) => void;
-  export type ErrorRequestHandler = (
-    error: unknown,
-    request: Request,
-    response: Response,
-    next: NextFunction,
-  ) => void;
-
-  export interface Router {
-    get(path: string, handler: RequestHandler): void;
-  }
-
-  export interface Application {
-    disable(setting: string): void;
-    use(handler: RequestHandler | ErrorRequestHandler): void;
-    use(
-      path: string,
-      router: Router | RequestHandler | ErrorRequestHandler,
-    ): void;
-    get(path: string, handler: RequestHandler): void;
-    listen(port: number, callback?: () => void): Server;
-  }
-
-  export interface Server {
-    close(callback?: (error?: Error) => void): void;
-  }
-
-  export interface ExpressFactory {
-    (): Application;
-    json(): RequestHandler;
-    static(root: string, options?: { index?: string }): RequestHandler;
-    Router(): Router;
-  }
-
-  const express: ExpressFactory;
-  export function Router(): Router;
-  export default express;
 }
 
 declare module "node:sqlite" {
