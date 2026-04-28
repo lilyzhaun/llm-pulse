@@ -1,12 +1,9 @@
 import type { ChannelAvailability } from "@llm-pulse/shared";
+import { formatPercent } from "../lib/format";
 import { StatusBadge } from "./StatusBadge";
 
 export interface PulseRowProps {
   channel: ChannelAvailability;
-}
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
 }
 
 function formatLatency(value: number | null) {

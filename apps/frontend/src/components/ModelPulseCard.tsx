@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { formatPercent } from "../lib/format";
 import { StatusBadge } from "./StatusBadge";
 
 export interface ModelPulseCardProps {
@@ -25,10 +26,6 @@ function getHeartbeatSlotCount() {
   return window.matchMedia(MOBILE_HEARTBEAT_QUERY).matches
     ? MOBILE_HEARTBEAT_SLOT_COUNT
     : DESKTOP_HEARTBEAT_SLOT_COUNT;
-}
-
-function formatPercent(value: number) {
-  return `${Math.round(value * 100)}%`;
 }
 
 function formatNullablePercent(value: number | null) {
@@ -146,6 +143,7 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
     null,
   );
   const cardRef = useRef<HTMLElement | null>(null);
+  const heartbeatBarsRef = useRef<HTMLDivElement | null>(null);
   const selectedBeat = useMemo(
     () => latestBeats.find((beat) => beat.start === selectedBeatStart) ?? null,
     [latestBeats, selectedBeatStart],
@@ -160,11 +158,11 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
     }
 
     const handlePointerDown = (event: PointerEvent) => {
-      if (!cardRef.current) {
+      if (!heartbeatBarsRef.current) {
         return;
       }
 
-      if (!cardRef.current.contains(event.target as Node)) {
+      if (!heartbeatBarsRef.current.contains(event.target as Node)) {
         setSelectedBeatStart(null);
       }
     };
@@ -230,6 +228,7 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
 
         <div className="heartbeat-board__bars-shell">
           <div
+            ref={heartbeatBarsRef}
             className="heartbeat-board__bars"
             style={
               {

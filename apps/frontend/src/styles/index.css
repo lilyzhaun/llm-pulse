@@ -513,6 +513,8 @@ ul {
 }
 
 .model-card {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 220px;
   display: grid;
   gap: 10px;
   padding: 14px 16px;

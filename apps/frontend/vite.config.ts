@@ -1,10 +1,11 @@
 import { URL, fileURLToPath } from "node:url";
 import react from "@vitejs/plugin-react";
+import type { PluginOption } from "vite";
 import { defineConfig } from "vite";
 
 export default defineConfig({
   base: "/status/",
-  plugins: [react()],
+  plugins: [react() as unknown as PluginOption],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
