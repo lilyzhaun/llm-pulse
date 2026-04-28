@@ -8,6 +8,7 @@ import express, {
 } from "express";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
 import { healthRouter } from "./routes/health.js";
+import { metricsRouter } from "./routes/metrics.js";
 import { pulseRouter } from "./routes/pulse.js";
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
@@ -22,6 +23,7 @@ export const createApp = () => {
   app.use(express.json());
 
   app.use("/status/api/health", healthRouter);
+  app.use("/status/api/metrics", metricsRouter);
   app.use("/status/api/pulse", pulseRouter);
 
   if (hasFrontendDist) {

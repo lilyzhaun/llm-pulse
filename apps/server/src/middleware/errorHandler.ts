@@ -19,7 +19,10 @@ export const errorHandler: ErrorRequestHandler = (
   if (error instanceof AppError) {
     response.status(error.statusCode).json({
       error: {
-        message: isProduction ? "Internal server error" : error.message,
+        message:
+          isProduction && error.statusCode >= 500
+            ? "Internal server error"
+            : error.message,
       },
     });
     return;
