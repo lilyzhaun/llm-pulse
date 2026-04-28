@@ -20,7 +20,7 @@
 - 服务地址：`http://127.0.0.1:3000`
 - 服务版本：`v0.13.1-patch.1`
 - 部署方式：Docker 容器运行的 `calciumion/new-api:v0.13.1-patch.1`
-- 数据库：PostgreSQL（容器内配置 `SQL_DSN=postgresql://root:123456@postgres:5432/new-api`）
+- 数据库：PostgreSQL（容器内配置 `SQL_DSN=postgresql://root:<password>@postgres:5432/new-api`）
 
 ---
 
@@ -40,7 +40,7 @@ curl -i -sS http://127.0.0.1:3000/api/log/
 HTTP/1.1 401 Unauthorized
 Content-Type: application/json; charset=utf-8
 X-New-Api-Version: v0.13.1-patch.1
-X-Oneapi-Request-Id: 202604270800274288477698268d9d6DvGcMjXb
+X-Oneapi-Request-Id: req-example-001
 
 {"message":"Unauthorized, not logged in and no access token provided","success":false}
 ```
@@ -55,28 +55,28 @@ X-Oneapi-Request-Id: 202604270800274288477698268d9d6DvGcMjXb
 实测证明：管理员登录成功后，请求 `/api/log/` 时除了 session cookie，还必须带：
 
 ```http
-New-Api-User: 1
+New-Api-User: 1001
 ```
 
-其中 `1` 是当前登录管理员 `shiyan` 的用户 ID。
+其中 `1001` 是当前登录管理员 `admin` 的用户 ID。
 
 ### 2.3 管理员接口默认能看所有用户
 
 不带 `username` 参数时：
 
-- 返回里同时出现了 `shiyan`
-- 也出现了 `wenzi`
-- 也出现了 `echo`
+- 返回里同时出现了 `admin`
+- 也出现了 `user-a`
+- 也出现了 `user-b`
 
 说明管理员接口默认是**全站视角**。
 
 只有在显式传了：
 
 ```http
-username=shiyan
+username=admin
 ```
 
-时，才会只返回 `shiyan` 的日志。
+时，才会只返回 `admin` 的日志。
 
 ---
 
@@ -90,13 +90,13 @@ username=shiyan
 curl -i -sS -c /tmp/newapi.cookie \
   -H 'Content-Type: application/json' \
   -X POST http://127.0.0.1:3000/api/user/login \
-  -d '{"username":"shiyan","password":"<已脱敏>"}'
+  -d '{"username":"admin","password":"<已脱敏>"}'
 ```
 
 说明：
 
 - `-c /tmp/newapi.cookie`：把服务端返回的 session cookie 存到本地文件
-- 用户名实测为：`shiyan`
+- 用户名实测为：`admin`
 - 密码已脱敏，不写入本文档
 
 ### 3.2 登录成功响应（真实样本）
@@ -106,25 +106,25 @@ HTTP/1.1 200 OK
 Content-Type: application/json; charset=utf-8
 Set-Cookie: session=<已脱敏>; Path=/; Expires=Wed, 27 May 2026 08:06:43 GMT; Max-Age=2592000; HttpOnly; SameSite=Strict
 X-New-Api-Version: v0.13.1-patch.1
-X-Oneapi-Request-Id: 20260427080643997172058268d9d6b267LGv6
+X-Oneapi-Request-Id: req-example-002
 Date: Mon, 27 Apr 2026 08:06:43 GMT
 Content-Length: 129
 
-{"data":{"display_name":"Root User","group":"svip","id":1,"role":100,"status":1,"username":"shiyan"},"message":"","success":true}
+{"data":{"display_name":"Root User","group":"group-a","id":1001,"role":100,"status":1,"username":"admin"},"message":"","success":true}
 ```
 
 ### 3.3 从登录响应可以确认的事实
 
-- `username = shiyan`
-- `id = 1`
+- `username = admin`
+- `id = 1001`
 - `role = 100`
 - `status = 1`
-- `group = svip`
+- `group = group-a`
 
 其中：
 
 - `role = 100` 代表 root 管理员
-- `id = 1` 是后续 `New-Api-User` 请求头要填写的值
+- `id = 1001` 是后续 `New-Api-User` 请求头要填写的值
 
 ---
 
@@ -135,14 +135,14 @@ Content-Length: 129
 ```bash
 curl -i -sS \
   -b /tmp/newapi.cookie \
-  -H 'New-Api-User: 1' \
+  -H 'New-Api-User: 1001' \
   'http://127.0.0.1:3000/api/log/?p=0&page_size=5'
 ```
 
 说明：
 
 - `-b /tmp/newapi.cookie`：带上刚登录拿到的 session
-- `New-Api-User: 1`：必须与当前登录用户 ID 一致
+- `New-Api-User: 1001`：必须与当前登录用户 ID 一致
 - `p=0&page_size=5`：请求第一页 5 条数据
 
 ---
@@ -155,7 +155,7 @@ curl -i -sS \
 GET /api/log/?p=0&page_size=5 HTTP/1.1
 Host: 127.0.0.1:3000
 Cookie: session=<已脱敏>
-New-Api-User: 1
+New-Api-User: 1001
 ```
 
 ### 5.2 真实响应头
@@ -165,7 +165,7 @@ HTTP/1.1 200 OK
 Auth-Version: 864b7076dbcd0a3c01b5520316720ebf
 Content-Type: application/json; charset=utf-8
 X-New-Api-Version: v0.13.1-patch.1
-X-Oneapi-Request-Id: 202604270806515608319588268d9d6ILcMDZZV
+X-Oneapi-Request-Id: req-example-003
 Date: Mon, 27 Apr 2026 08:06:51 GMT
 Transfer-Encoding: chunked
 ```
@@ -181,12 +181,12 @@ Transfer-Encoding: chunked
     "items": [
       {
         "id": 223921,
-        "user_id": 1,
+        "user_id": 1001,
         "created_at": 1777277211,
         "type": 2,
         "content": "",
-        "username": "shiyan",
-        "token_name": "ooencode",
+        "username": "admin",
+        "token_name": "token-1",
         "model_name": "gpt-5.4",
         "quota": 88239,
         "prompt_tokens": 89324,
@@ -194,21 +194,21 @@ Transfer-Encoding: chunked
         "use_time": 8,
         "is_stream": true,
         "channel": 2,
-        "channel_name": "dammvip",
-        "token_id": 23,
-        "group": "svip",
+        "channel_name": "channel-1",
+        "token_id": 2301,
+        "group": "group-a",
         "ip": "",
-        "request_id": "202604270806439236986978268d9d6efVwugcW",
+        "request_id": "req-example-004",
         "other": "{\"admin_info\":{\"use_channel\":[\"2\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":22528,\"completion_ratio\":6,\"frt\":2640,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":1.25,\"reasoning_effort\":\"medium\",\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       },
       {
         "id": 223920,
-        "user_id": 1,
+        "user_id": 1001,
         "created_at": 1777277203,
         "type": 2,
         "content": "",
-        "username": "shiyan",
-        "token_name": "ooencode",
+        "username": "admin",
+        "token_name": "token-1",
         "model_name": "gpt-5.4",
         "quota": 88227,
         "prompt_tokens": 88643,
@@ -216,21 +216,21 @@ Transfer-Encoding: chunked
         "use_time": 11,
         "is_stream": true,
         "channel": 2,
-        "channel_name": "dammvip",
-        "token_id": 23,
-        "group": "svip",
+        "channel_name": "channel-1",
+        "token_id": 2301,
+        "group": "group-a",
         "ip": "",
-        "request_id": "202604270806326467139998268d9d6A7GHHnqg",
+        "request_id": "req-example-005",
         "other": "{\"admin_info\":{\"use_channel\":[\"2\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":22528,\"completion_ratio\":6,\"frt\":6375,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":1.25,\"reasoning_effort\":\"medium\",\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       },
       {
         "id": 223919,
-        "user_id": 6,
+        "user_id": 1002,
         "created_at": 1777277199,
         "type": 5,
         "content": "status_code=429, All credentials for model gpt-5.3-codex are cooling down via provider codex",
-        "username": "wenzi",
-        "token_name": "cli-proxy-api",
+        "username": "user-a",
+        "token_name": "token-2",
         "model_name": "gpt-5.3-codex",
         "quota": 0,
         "prompt_tokens": 0,
@@ -238,21 +238,21 @@ Transfer-Encoding: chunked
         "use_time": 0,
         "is_stream": true,
         "channel": 1,
-        "channel_name": "dammapi",
-        "token_id": 3,
-        "group": "default",
+        "channel_name": "channel-2",
+        "token_id": 2302,
+        "group": "group-b",
         "ip": "",
-        "request_id": "202604270806391224595648268d9d6U7YQMydE",
-        "other": "{\"admin_info\":{\"use_channel\":[\"1\"]},\"channel_id\":1,\"channel_name\":\"dammapi\",\"channel_type\":1,\"error_code\":\"model_cooldown\",\"error_type\":\"openai_error\",\"request_path\":\"/v1/chat/completions\",\"status_code\":429}"
+        "request_id": "req-example-006",
+        "other": "{\"admin_info\":{\"use_channel\":[\"1\"]},\"channel_id\":1,\"channel_name\":\"channel-2\",\"channel_type\":1,\"error_code\":\"model_cooldown\",\"error_type\":\"openai_error\",\"request_path\":\"/v1/chat/completions\",\"status_code\":429}"
       },
       {
         "id": 223918,
-        "user_id": 9,
+        "user_id": 1003,
         "created_at": 1777277187,
         "type": 2,
         "content": "",
-        "username": "echo",
-        "token_name": "xx",
+        "username": "user-b",
+        "token_name": "token-3",
         "model_name": "gpt-5.5",
         "quota": 49797,
         "prompt_tokens": 115237,
@@ -260,21 +260,21 @@ Transfer-Encoding: chunked
         "use_time": 14,
         "is_stream": true,
         "channel": 1,
-        "channel_name": "dammapi",
-        "token_id": 12,
-        "group": "vip",
+        "channel_name": "channel-2",
+        "token_id": 2303,
+        "group": "group-c",
         "ip": "",
-        "request_id": "202604270806138381341898268d9d6DMNOUuur",
+        "request_id": "req-example-007",
         "other": "{\"admin_info\":{\"use_channel\":[\"1\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":114176,\"completion_ratio\":6,\"frt\":2100,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":2.5,\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       },
       {
         "id": 223917,
-        "user_id": 9,
+        "user_id": 1003,
         "created_at": 1777277170,
         "type": 2,
         "content": "",
-        "username": "echo",
-        "token_name": "xx",
+        "username": "user-b",
+        "token_name": "token-3",
         "model_name": "gpt-5.5",
         "quota": 38155,
         "prompt_tokens": 114472,
@@ -282,11 +282,11 @@ Transfer-Encoding: chunked
         "use_time": 7,
         "is_stream": true,
         "channel": 1,
-        "channel_name": "dammapi",
-        "token_id": 12,
-        "group": "vip",
+        "channel_name": "channel-2",
+        "token_id": 2303,
+        "group": "group-c",
         "ip": "",
-        "request_id": "202604270806034660294298268d9d6ZbQwRC8j",
+        "request_id": "req-example-008",
         "other": "{\"admin_info\":{\"use_channel\":[\"1\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":112640,\"completion_ratio\":6,\"frt\":3013,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":2.5,\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       }
     ]
@@ -300,9 +300,9 @@ Transfer-Encoding: chunked
 
 这个真实响应同时包含了以下用户：
 
-- `shiyan`
-- `wenzi`
-- `echo`
+- `admin`
+- `user-a`
+- `user-b`
 
 因此可以确认：
 
@@ -317,8 +317,8 @@ Transfer-Encoding: chunked
 ```bash
 curl -i -sS \
   -b /tmp/newapi.cookie \
-  -H 'New-Api-User: 1' \
-  'http://127.0.0.1:3000/api/log/?p=0&page_size=2&type=2&username=shiyan&model_name=gpt-5.4'
+  -H 'New-Api-User: 1001' \
+  'http://127.0.0.1:3000/api/log/?p=0&page_size=2&type=2&username=admin&model_name=gpt-5.4'
 ```
 
 ### 6.2 真实响应头
@@ -328,7 +328,7 @@ HTTP/1.1 200 OK
 Auth-Version: 864b7076dbcd0a3c01b5520316720ebf
 Content-Type: application/json; charset=utf-8
 X-New-Api-Version: v0.13.1-patch.1
-X-Oneapi-Request-Id: 202604270806518011888998268d9d6ZCkZsZ3j
+X-Oneapi-Request-Id: req-example-009
 Date: Mon, 27 Apr 2026 08:06:52 GMT
 Content-Length: 1656
 ```
@@ -344,12 +344,12 @@ Content-Length: 1656
     "items": [
       {
         "id": 223921,
-        "user_id": 1,
+        "user_id": 1001,
         "created_at": 1777277211,
         "type": 2,
         "content": "",
-        "username": "shiyan",
-        "token_name": "ooencode",
+        "username": "admin",
+        "token_name": "token-1",
         "model_name": "gpt-5.4",
         "quota": 88239,
         "prompt_tokens": 89324,
@@ -357,21 +357,21 @@ Content-Length: 1656
         "use_time": 8,
         "is_stream": true,
         "channel": 2,
-        "channel_name": "dammvip",
-        "token_id": 23,
-        "group": "svip",
+        "channel_name": "channel-1",
+        "token_id": 2301,
+        "group": "group-a",
         "ip": "",
-        "request_id": "202604270806439236986978268d9d6efVwugcW",
+        "request_id": "req-example-004",
         "other": "{\"admin_info\":{\"use_channel\":[\"2\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":22528,\"completion_ratio\":6,\"frt\":2640,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":1.25,\"reasoning_effort\":\"medium\",\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       },
       {
         "id": 223920,
-        "user_id": 1,
+        "user_id": 1001,
         "created_at": 1777277203,
         "type": 2,
         "content": "",
-        "username": "shiyan",
-        "token_name": "ooencode",
+        "username": "admin",
+        "token_name": "token-1",
         "model_name": "gpt-5.4",
         "quota": 88227,
         "prompt_tokens": 88643,
@@ -379,11 +379,11 @@ Content-Length: 1656
         "use_time": 11,
         "is_stream": true,
         "channel": 2,
-        "channel_name": "dammvip",
-        "token_id": 23,
-        "group": "svip",
+        "channel_name": "channel-1",
+        "token_id": 2301,
+        "group": "group-a",
         "ip": "",
-        "request_id": "202604270806326467139998268d9d6A7GHHnqg",
+        "request_id": "req-example-005",
         "other": "{\"admin_info\":{\"use_channel\":[\"2\"]},\"billing_source\":\"wallet\",\"cache_ratio\":0.1,\"cache_tokens\":22528,\"completion_ratio\":6,\"frt\":6375,\"group_ratio\":1,\"model_price\":-1,\"model_ratio\":1.25,\"reasoning_effort\":\"medium\",\"request_conversion\":[\"OpenAI Compatible\"],\"request_path\":\"/v1/chat/completions\",\"stream_status\":{\"end_reason\":\"done\",\"status\":\"ok\"},\"user_group_ratio\":-1}"
       }
     ]
@@ -399,13 +399,13 @@ Content-Length: 1656
 
 ```http
 type=2
-username=shiyan
+username=admin
 model_name=gpt-5.4
 ```
 
 所以返回只剩下：
 
-- 用户 `shiyan`
+- 用户 `admin`
 - 模型 `gpt-5.4`
 - 类型 `type=2` 的日志
 
@@ -426,8 +426,8 @@ model_name=gpt-5.4
 | `created_at` | 创建时间（Unix 时间戳） | `1777277211` |
 | `type` | 日志类型 | `2` 成功消费，`5` 错误 |
 | `content` | 内容/错误信息 | `status_code=429, ...` |
-| `username` | 用户名 | `shiyan` |
-| `token_name` | 使用的令牌名 | `ooencode` |
+| `username` | 用户名 | `admin` |
+| `token_name` | 使用的令牌名 | `token-1` |
 | `model_name` | 模型名 | `gpt-5.4` |
 | `quota` | 额度消耗 | `88239` |
 | `prompt_tokens` | 输入 token 数 | `89324` |
@@ -435,11 +435,11 @@ model_name=gpt-5.4
 | `use_time` | 耗时（秒） | `8` |
 | `is_stream` | 是否流式 | `true` |
 | `channel` | 渠道 ID | `2` |
-| `channel_name` | 渠道名 | `dammvip` |
-| `token_id` | 令牌 ID | `23` |
-| `group` | 用户分组 | `svip` |
+| `channel_name` | 渠道名 | `channel-1` |
+| `token_id` | 令牌 ID | `2301` |
+| `group` | 用户分组 | `group-a` |
 | `ip` | IP | `""` |
-| `request_id` | 请求 ID | `202604...` |
+| `request_id` | 请求 ID | `req-example-001` |
 | `other` | 扩展 JSON 字符串 | 包含 `frt`、`request_path`、`status_code` 等 |
 
 ---
@@ -519,7 +519,7 @@ model_name=gpt-5.4
 curl -i -sS -c /tmp/newapi.cookie \
   -H 'Content-Type: application/json' \
   -X POST http://127.0.0.1:3000/api/user/login \
-  -d '{"username":"shiyan","password":"<你的密码>"}'
+  -d '{"username":"admin","password":"<你的密码>"}'
 ```
 
 2. 取全部用户日志：
@@ -527,7 +527,7 @@ curl -i -sS -c /tmp/newapi.cookie \
 ```bash
 curl -i -sS \
   -b /tmp/newapi.cookie \
-  -H 'New-Api-User: 1' \
+  -H 'New-Api-User: 1001' \
   'http://127.0.0.1:3000/api/log/?p=0&page_size=5'
 ```
 
@@ -536,8 +536,8 @@ curl -i -sS \
 ```bash
 curl -i -sS \
   -b /tmp/newapi.cookie \
-  -H 'New-Api-User: 1' \
-  'http://127.0.0.1:3000/api/log/?p=0&page_size=2&type=2&username=shiyan&model_name=gpt-5.4'
+  -H 'New-Api-User: 1001' \
+  'http://127.0.0.1:3000/api/log/?p=0&page_size=2&type=2&username=admin&model_name=gpt-5.4'
 ```
 
 ---
