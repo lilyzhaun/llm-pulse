@@ -11,5 +11,10 @@ export default defineConfig({
   },
   test: {
     include: ["test/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "html", "lcov", "json"],
+      exclude: ["dist/**", "coverage/**", "test/**", "vitest.config.ts"],
+    },
   },
 });
