@@ -32,7 +32,7 @@ npm run build
 示例：
 
 ```bash
-PORT=43111 BFF_PORT=43111 npm run dev:server
+PORT=43130 BFF_PORT=43130 npm run dev:server
 ```
 
 生产建议改为运行：
@@ -56,6 +56,10 @@ npm run build --workspace @llm-pulse/server && node apps/server/dist/index.js
 1. 保持现有 `location /` 继续代理到原站点
 2. 只新增 `location = /status` 和 `location ^~ /status/`
 3. 将 `/status/*` 反代到 LLM Pulse BFF 端口
+
+## logrotate
+
+仓库内提供 `deploy/logrotate.d/llm-pulse`，用于轮转 `/var/log/llm-pulse.log`。部署时将该文件安装到宿主机的 logrotate 配置目录，例如 `/etc/logrotate.d/llm-pulse`，即可按每日轮转、保留 7 份并启用压缩。
 
 ## 验证项
 

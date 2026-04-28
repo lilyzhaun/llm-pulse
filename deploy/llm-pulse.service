@@ -1,0 +1,55 @@
+[Unit]
+Description=LLM Pulse BFF Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=root
+Group=root
+WorkingDirectory=/opt/llm-pulse
+
+# 推荐生产做法：把敏感变量放到仓库外的 EnvironmentFile 中；
+# 该模板默认假设服务以 root 运行、仓库部署在 /opt/llm-pulse。
+# 如果把 WorkingDirectory 改到 /root/...，ProtectHome=yes 会遮蔽 /root 并导致 chdir 失败，需要同步调整隔离策略。
+EnvironmentFile=-/etc/llm-pulse.env
+
+# 非敏感默认值可保留在 unit 中，EnvironmentFile 仅用于覆盖或补充生产环境变量。
+Environment=NODE_ENV=production
+Environment=PORT=43130
+Environment=NEW_API_BASE_URL=http://127.0.0.1:3000
+Environment=PULSE_DB_FILE=/var/lib/llm-pulse/pulse-state.sqlite
+Environment=POLL_INTERVAL_MS=20000
+Environment=LOG_PAGE_SIZE=50
+Environment=LOG_MAX_PAGES_PER_POLL=5
+
+# NEW_API_ADMIN_USERNAME / NEW_API_ADMIN_PASSWORD 建议由 /etc/llm-pulse.env 提供，
+# 不要把真实凭证写回仓库模板或直接硬编码在 unit 里。
+
+# 启动前确保数据目录存在；服务以 root 运行时不需要额外 chown。
+ExecStartPre=/bin/mkdir -p /var/lib/llm-pulse
+ExecStartPre=/bin/mkdir -p /opt/llm-pulse/apps/frontend/dist
+
+ExecStart=/usr/bin/node /opt/llm-pulse/apps/server/dist/index.js
+
+# 优雅关闭：SIGINT → 停轮询 → 关 HTTP → 退出
+KillSignal=SIGINT
+TimeoutStopSec=30
+
+Restart=on-failure
+RestartSec=10
+
+# 安全加固
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/lib/llm-pulse
+ReadOnlyPaths=/opt/llm-pulse
+
+# 日志
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=llm-pulse
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+version: "3.9"
+
+services:
+  llm-pulse:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: llm-pulse:local
+    env_file:
+      - .env
+    environment:
+      PORT: "43130"
+      BFF_PORT: "43130"
+      PULSE_DB_FILE: /var/lib/llm-pulse/pulse-state.sqlite
+    ports:
+      - "43130:43130"
+    volumes:
+      - llm_pulse_data:/var/lib/llm-pulse
+    restart: unless-stopped
+
+volumes:
+  llm_pulse_data:
