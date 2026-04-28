@@ -1,0 +1,28 @@
+{
+  "name": "LLM Pulse",
+  "short_name": "Pulse",
+  "description": "Privacy-preserving model availability dashboard.",
+  "id": "/status/",
+  "start_url": "/status/",
+  "scope": "/status/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1d1b18",
+  "theme_color": "#10b981",
+  "lang": "zh-CN",
+  "categories": ["productivity", "utilities", "developer"],
+  "icons": [
+    {
+      "src": "/status/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/status/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
