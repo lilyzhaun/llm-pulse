@@ -108,6 +108,7 @@ const port = parsePort(process.env.PORT ?? process.env.BFF_PORT, 3001);
 export const env = {
   nodeEnv,
   port,
+  logLevel: process.env.LOG_LEVEL,
   newApiBaseUrl: process.env.NEW_API_BASE_URL ?? "",
   newApiAdminUsername: process.env.NEW_API_ADMIN_USERNAME ?? "",
   newApiAdminPassword: process.env.NEW_API_ADMIN_PASSWORD ?? "",

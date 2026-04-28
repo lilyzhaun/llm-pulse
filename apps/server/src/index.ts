@@ -1,6 +1,7 @@
 import type { Server as HttpServer } from "node:http";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
+import { logger } from "./lib/logger.js";
 import { aggregationService } from "./services/aggregationService.js";
 import { newApiLogService } from "./services/newApiLogService.js";
 import { persistenceService } from "./services/persistenceService.js";
@@ -57,11 +58,11 @@ const runStartupBackfill = async (): Promise<void> => {
 
 void runStartupBackfill()
   .catch((error) => {
-    console.error("Initial backfill failed", error);
+    logger.error({ error }, "Initial backfill failed");
   })
   .finally(() => {
     void pollingService.runNow(syncLatestLogs).catch((error) => {
-      console.error("Initial new-api sync failed", error);
+      logger.error({ error }, "Initial new-api sync failed");
     });
   });
 
@@ -69,32 +70,35 @@ pollingService.start(async () => {
   try {
     await syncLatestLogs();
   } catch (error) {
-    console.error("Scheduled new-api sync failed", error);
+    logger.error({ error }, "Scheduled new-api sync failed");
   }
 }, env.pollIntervalMs);
 
 const server = app.listen(env.port, () => {
-  console.info(`llm-pulse BFF listening on port ${env.port}`);
+  logger.info({ port: env.port }, "llm-pulse BFF listening");
 }) as unknown as HttpServer;
 
 server.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
-    console.error(
-      `Failed to start llm-pulse BFF: port ${env.port} is already in use`,
+    logger.error(
+      { port: env.port },
+      "Failed to start llm-pulse BFF: port is already in use",
     );
     process.exit(1);
   }
 
-  console.error("Failed to start llm-pulse BFF", error);
+  logger.error({ error }, "Failed to start llm-pulse BFF");
   process.exit(1);
 });
 
 const shutdown = (signal: NodeJS.Signals) => {
-  console.info(`Received ${signal}, shutting down server`);
+  logger.info({ signal }, "Received shutdown signal, shutting down server");
   pollingService.stop();
   server.close((error) => {
+    persistenceService.close();
+
     if (error) {
-      console.error("Failed to shut down server cleanly", error);
+      logger.error({ error }, "Failed to shut down server cleanly");
       process.exit(1);
     }
 
