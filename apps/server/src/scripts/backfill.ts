@@ -1,8 +1,10 @@
 import type { NewApiLogItem, NewApiLogResponse } from "@llm-pulse/shared";
 import { env } from "../config/env.js";
+import { logger } from "../lib/logger.js";
 import { aggregationService } from "../services/aggregationService.js";
 import { newApiAuthService } from "../services/newApiAuthService.js";
 import { persistenceService } from "../services/persistenceService.js";
+import { dedupeLogs } from "../services/newApiLogService.js";
 
 interface BackfillCliOptions {
   hours: number;
@@ -22,19 +24,6 @@ const DEFAULTS: BackfillCliOptions = {
 
 const sleep = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
-
-const dedupeLogs = (logs: NewApiLogItem[]): NewApiLogItem[] => {
-  const seenIds = new Set<number>();
-
-  return logs.filter((log) => {
-    if (seenIds.has(log.id)) {
-      return false;
-    }
-
-    seenIds.add(log.id);
-    return true;
-  });
-};
 
 const fetchLogPage = async (
   page: number,
@@ -70,7 +59,7 @@ const fetchLogPage = async (
     }
 
     const waitMs = options.delayMs * (attempt + 1) * 2;
-    console.warn(`Hit 429 on page ${page}, retrying in ${waitMs}ms`);
+    logger.warn({ page, waitMs }, "Hit 429 on page, retrying");
     await sleep(waitMs);
   }
 
@@ -110,7 +99,7 @@ const parseArgs = (): BackfillCliOptions => {
 };
 
 const printHelp = (): void => {
-  console.info(`
+  logger.info(`
 LLM Pulse one-shot backfill
 
 Usage:
@@ -160,7 +149,10 @@ const main = async () => {
   const restoredState = await persistenceService.loadPulseState();
   await aggregationService.restoreFromState(restoredState);
 
-  console.info(`Starting one-shot backfill for last ${options.hours} hours`);
+  logger.info(
+    { hours: options.hours },
+    "Starting one-shot backfill for recent hours",
+  );
   const logs = await fetchBackfillLogs(options);
 
   await aggregationService.ingestLogsWithState(
@@ -174,10 +166,10 @@ const main = async () => {
     },
   );
 
-  console.info(`Backfill complete. Imported ${logs.length} logs.`);
+  logger.info({ importedLogs: logs.length }, "Backfill complete");
 };
 
 void main().catch((error) => {
-  console.error("Backfill failed", error);
+  logger.error({ error }, "Backfill failed");
   process.exit(1);
 });
