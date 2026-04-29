@@ -36,8 +36,15 @@ ExecStart=/usr/bin/node /opt/llm-pulse/apps/server/dist/index.js
 KillSignal=SIGINT
 TimeoutStopSec=30
 
+# 资源限制：避免轮询和 SQLite 缓存异常放大内存/CPU 占用。
+MemoryMax=512M
+MemoryHigh=384M
+CPUQuota=80%
+
 Restart=on-failure
-RestartSec=10
+RestartSec=5
+StartLimitIntervalSec=300
+StartLimitBurst=5
 
 # 安全加固
 NoNewPrivileges=yes
