@@ -2,6 +2,7 @@ import type { NewApiLogItem, NewApiLogResponse } from "@llm-pulse/shared";
 import { env } from "../config/env.js";
 import { logger } from "../lib/logger.js";
 import { aggregationService } from "../services/aggregationService.js";
+import { compareByCreatedAtDescThenIdDesc } from "../lib/comparators.js";
 import { newApiAuthService } from "../services/newApiAuthService.js";
 import { persistenceService } from "../services/persistenceService.js";
 import { dedupeLogs } from "../services/newApiLogService.js";
@@ -139,9 +140,7 @@ const fetchBackfillLogs = async (options: BackfillCliOptions) => {
     await sleep(options.delayMs);
   }
 
-  return dedupeLogs(logs).sort(
-    (left, right) => right.created_at - left.created_at || right.id - left.id,
-  );
+  return dedupeLogs(logs).sort(compareByCreatedAtDescThenIdDesc);
 };
 
 const main = async () => {

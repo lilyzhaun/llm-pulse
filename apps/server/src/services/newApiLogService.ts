@@ -5,6 +5,8 @@ import type {
 } from "@llm-pulse/shared";
 import { env } from "../config/env.js";
 import { UpstreamError } from "../errors/AppError.js";
+import { compareByCreatedAtDescThenIdDesc } from "../lib/comparators.js";
+import { incrementUpstreamRequestErrors } from "../routes/metrics.js";
 import {
   type NewApiAuthService,
   newApiAuthService,
@@ -102,9 +104,7 @@ export class NewApiLogService {
       }
     }
 
-    const dedupedLogs = dedupeLogs(logs).sort(
-      (left, right) => right.created_at - left.created_at || right.id - left.id,
-    );
+    const dedupedLogs = dedupeLogs(logs).sort(compareByCreatedAtDescThenIdDesc);
     this.rememberNewestTimestamp(dedupedLogs);
 
     return dedupedLogs;
@@ -125,12 +125,19 @@ export class NewApiLogService {
   private async fetchLogPage(
     query: NewApiLogQuery,
   ): Promise<NewApiLogResponse> {
-    const response = await this.authService.fetchWithAuth(buildLogUrl(query), {
-      method: "GET",
-    });
+    let response: Response;
+    try {
+      response = await this.authService.fetchWithAuth(buildLogUrl(query), {
+        method: "GET",
+      });
+    } catch (error) {
+      incrementUpstreamRequestErrors();
+      throw error;
+    }
 
     const payload = (await response.json()) as unknown;
     if (!response.ok) {
+      incrementUpstreamRequestErrors();
       const message =
         payload && typeof payload === "object" && "message" in payload
           ? String(payload.message)
@@ -139,6 +146,7 @@ export class NewApiLogService {
     }
 
     if (!isNewApiLogResponse(payload) || !payload.success) {
+      incrementUpstreamRequestErrors();
       throw new UpstreamError(
         `new-api log response was invalid: ${isNewApiLogResponse(payload) ? payload.message : "unexpected shape"}`,
       );
