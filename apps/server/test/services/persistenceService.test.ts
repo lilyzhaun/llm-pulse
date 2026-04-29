@@ -1,9 +1,29 @@
 import { mkdir, rm, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("sqlite", () => require(`node:${"sqlite"}`));
+
+interface TestDatabase {
+  prepare(statement: string): {
+    all(): unknown[];
+    get(): unknown;
+  };
+  exec(statement: string): void;
+  close(): void;
+}
+
+const require = createRequire(import.meta.url);
+
+const openDatabase = (path: string) => {
+  const { DatabaseSync } = require("node:sqlite") as {
+    DatabaseSync: new (path: string) => TestDatabase;
+  };
+
+  return new DatabaseSync(path);
+};
 
 import {
   type PersistedPulseLog,
@@ -105,6 +125,119 @@ describe("PersistenceService", () => {
     expect(loadedState?.savedAt).toEqual(expect.any(String));
   });
 
+  it("sets SQLite PRAGMA values when initializing the database", async () => {
+    const service = new PersistenceService(statePath);
+
+    await service.savePulseState(state());
+    const database = (service as unknown as { database: TestDatabase })
+      .database;
+    try {
+      const journalMode = database.prepare("PRAGMA journal_mode").get() as {
+        journal_mode: string;
+      };
+      const busyTimeout = database.prepare("PRAGMA busy_timeout").get() as {
+        timeout: number;
+      };
+      const foreignKeys = database.prepare("PRAGMA foreign_keys").get() as {
+        foreign_keys: number;
+      };
+
+      expect(journalMode.journal_mode).toBe("wal");
+      expect(busyTimeout.timeout).toBe(5_000);
+      expect(foreignKeys.foreign_keys).toBe(1);
+    } finally {
+      service.close();
+    }
+  });
+
+  it("records the initial migration and does not reapply it on repeated initialization", async () => {
+    const service = new PersistenceService(statePath);
+
+    await service.savePulseState(state());
+    service.close();
+    await expect(service.loadPulseState()).resolves.toMatchObject(state());
+    service.close();
+
+    const database = openDatabase(statePath);
+    try {
+      const appliedMigrations = database
+        .prepare("SELECT version, name FROM schema_migrations ORDER BY version")
+        .all();
+
+      expect(appliedMigrations).toEqual([
+        {
+          version: 1,
+          name: "initial-schema",
+        },
+      ]);
+    } finally {
+      database.close();
+    }
+  });
+
+  it("upgrades an existing database without schema_migrations", async () => {
+    const database = openDatabase(statePath);
+    try {
+      database.exec(`
+        CREATE TABLE pulse_logs (
+          id INTEGER PRIMARY KEY,
+          created_at INTEGER NOT NULL,
+          type INTEGER NOT NULL,
+          model_name TEXT NOT NULL,
+          use_time REAL NOT NULL,
+          channel INTEGER NOT NULL,
+          channel_name TEXT NOT NULL
+        );
+
+        CREATE TABLE pulse_state (
+          state_key TEXT PRIMARY KEY,
+          value TEXT NOT NULL,
+          saved_at TEXT NOT NULL
+        );
+
+        INSERT INTO pulse_logs (id, created_at, type, model_name, use_time, channel, channel_name)
+        VALUES (42, 1704067200, 2, 'legacy-model', 1.5, 7, 'legacy-channel');
+
+        INSERT INTO pulse_state (state_key, value, saved_at)
+        VALUES ('last_seen_timestamp', '1704067200', '2024-01-01T00:00:00.000Z');
+      `);
+    } finally {
+      database.close();
+    }
+
+    const service = new PersistenceService(statePath);
+    const loadedState = await service.loadPulseState();
+
+    expect(loadedState).toMatchObject({
+      recentLogs: [
+        {
+          id: 42,
+          created_at: 1_704_067_200,
+          type: 2,
+          model_name: "legacy-model",
+          use_time: 1.5,
+          channel: 7,
+          channel_name: "legacy-channel",
+        },
+      ],
+      cursor: {
+        lastSeenTimestamp: 1_704_067_200,
+      },
+    });
+    service.close();
+
+    const upgradedDatabase = openDatabase(statePath);
+    try {
+      expect(
+        upgradedDatabase
+          .prepare("SELECT COUNT(*) AS count FROM schema_migrations")
+          .get(),
+      ).toEqual({ count: 1 });
+    } finally {
+      upgradedDatabase.close();
+    }
+  });
+
   it("closes the persistent database connection idempotently", async () => {
     const service = new PersistenceService(statePath);
     const savedState = state();
@@ -170,15 +303,52 @@ describe("PersistenceService", () => {
     expect(loadedState?.pollStatus).toEqual(savedState.pollStatus);
   });
 
-  it("returns null and logs a warning when loading a corrupted database", async () => {
-    const warnSpy = vi
-      .spyOn(logger, "warn")
+  it("preserves a null cursor lastSeenTimestamp across save and load", async () => {
+    const service = new PersistenceService(statePath);
+    const savedState = state({
+      cursor: {
+        lastSeenTimestamp: null,
+      },
+    });
+
+    await service.savePulseState(savedState);
+
+    await expect(service.loadPulseState()).resolves.toMatchObject({
+      cursor: {
+        lastSeenTimestamp: null,
+      },
+    });
+  });
+
+  it("returns null when the state file does not exist", async () => {
+    const service = new PersistenceService(statePath);
+
+    await expect(service.loadPulseState()).resolves.toBeNull();
+    expect(vi.spyOn(logger, "error")).not.toHaveBeenCalled();
+  });
+
+  it("returns a failure signal and logs an error when loading a corrupted database", async () => {
+    const errorSpy = vi
+      .spyOn(logger, "error")
       .mockImplementation(() => undefined);
     await writeFile(statePath, "not a sqlite database");
     const service = new PersistenceService(statePath);
 
-    await expect(service.loadPulseState()).resolves.toBeNull();
-    expect(warnSpy).toHaveBeenCalledWith(
+    const loadedState = await service.loadPulseState();
+    expect(loadedState).toMatchObject({
+      kind: "persistence-load-failure",
+      statePath,
+      errorMessage: expect.any(String),
+      recentLogs: [],
+      cursor: {
+        lastSeenTimestamp: null,
+      },
+      bootstrap: {
+        backfillCompletedAt: null,
+      },
+      pollStatus: null,
+    });
+    expect(errorSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         error: expect.any(Error),
         statePath,
@@ -252,9 +422,9 @@ describe("PersistenceService", () => {
       }),
     );
 
-    expect((await service.loadPulseState())?.recentLogs.map(({ id }) => id)).toEqual([
-      5, 1, 4,
-    ]);
+    expect(
+      (await service.loadPulseState())?.recentLogs.map(({ id }) => id),
+    ).toEqual([5, 1, 4]);
   });
 
   it("prunes logs beyond MODEL_BUCKET_RETENTION_COUNT per model", async () => {

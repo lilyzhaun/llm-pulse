@@ -1,10 +1,12 @@
-import { mkdir } from "node:fs/promises";
+import { access, mkdir } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 import { MODEL_BUCKET_RETENTION_COUNT } from "../config/constants.js";
 import { logger } from "../lib/logger.js";
+import { incrementPersistenceLoadErrors } from "../routes/metrics.js";
+import { runMigrations } from "./migrations/runner.js";
 
 const STATE_VERSION = 1;
 
@@ -40,6 +42,21 @@ export interface PersistedPulseState {
   pollStatus: PersistedPollStatus | null;
 }
 
+export interface PersistedPulseStateLoadFailure
+  extends Pick<
+    PersistedPulseState,
+    "version" | "savedAt" | "recentLogs" | "cursor" | "bootstrap" | "pollStatus"
+  > {
+  kind: "persistence-load-failure";
+  statePath: string;
+  errorMessage: string;
+}
+
+export type PersistedPulseStateLoadResult =
+  | PersistedPulseState
+  | PersistedPulseStateLoadFailure
+  | null;
+
 export class PersistenceService {
   private database: DatabaseSync | null = null;
 
@@ -47,7 +64,23 @@ export class PersistenceService {
     private readonly statePath = process.env.PULSE_DB_FILE ?? defaultStatePath,
   ) {}
 
-  async loadPulseState(): Promise<PersistedPulseState | null> {
+  async loadPulseState(): Promise<PersistedPulseStateLoadResult> {
+    try {
+      await access(this.statePath);
+    } catch (error) {
+      if (this.isMissingStateFileError(error)) {
+        return null;
+      }
+
+      logger.error(
+        { error, statePath: this.statePath },
+        "Failed to load llm-pulse state",
+      );
+
+      incrementPersistenceLoadErrors();
+      return this.createLoadFailure(error);
+    }
+
     try {
       const database = await this.getDatabase();
 
@@ -78,6 +111,7 @@ export class PersistenceService {
       if (
         !stateRow &&
         !cursorRow &&
+        !bootstrapRow &&
         !pollStatusRow &&
         recentLogs.length === 0
       ) {
@@ -89,7 +123,7 @@ export class PersistenceService {
         savedAt: stateRow?.saved_at ?? new Date().toISOString(),
         recentLogs,
         cursor: {
-          lastSeenTimestamp: cursorRow ? Number(cursorRow.value) : null,
+          lastSeenTimestamp: cursorRow?.value ? Number(cursorRow.value) : null,
         },
         bootstrap: {
           backfillCompletedAt: bootstrapRow?.value ? bootstrapRow.value : null,
@@ -99,11 +133,12 @@ export class PersistenceService {
           : null,
       };
     } catch (error) {
-      logger.warn(
+      logger.error(
         { error, statePath: this.statePath },
         "Failed to load llm-pulse state",
       );
-      return null;
+      incrementPersistenceLoadErrors();
+      return this.createLoadFailure(error);
     }
   }
 
@@ -200,27 +235,38 @@ export class PersistenceService {
   }
 
   private initializeSchema(database: DatabaseSync): void {
-    database.exec(`
-      CREATE TABLE IF NOT EXISTS pulse_logs (
-        id INTEGER PRIMARY KEY,
-        created_at INTEGER NOT NULL,
-        type INTEGER NOT NULL,
-        model_name TEXT NOT NULL,
-        use_time REAL NOT NULL,
-        channel INTEGER NOT NULL,
-        channel_name TEXT NOT NULL
-      );
+    database.exec("PRAGMA journal_mode = WAL");
+    database.exec("PRAGMA busy_timeout = 5000");
+    database.exec("PRAGMA foreign_keys = ON");
+    runMigrations(database);
+  }
 
-      CREATE TABLE IF NOT EXISTS pulse_state (
-        state_key TEXT PRIMARY KEY,
-        value TEXT NOT NULL,
-        saved_at TEXT NOT NULL
-      );
+  private createLoadFailure(error: unknown): PersistedPulseStateLoadFailure {
+    return {
+      kind: "persistence-load-failure",
+      version: STATE_VERSION,
+      savedAt: new Date().toISOString(),
+      recentLogs: [],
+      cursor: {
+        lastSeenTimestamp: null,
+      },
+      bootstrap: {
+        backfillCompletedAt: null,
+      },
+      pollStatus: null,
+      statePath: this.statePath,
+      errorMessage:
+        error instanceof Error ? error.message : "Unknown persistence error",
+    };
+  }
 
-      CREATE INDEX IF NOT EXISTS idx_pulse_logs_created_at ON pulse_logs(created_at DESC);
-      CREATE INDEX IF NOT EXISTS idx_pulse_logs_model_name ON pulse_logs(model_name);
-      CREATE INDEX IF NOT EXISTS idx_pulse_logs_model_created_at ON pulse_logs(model_name, created_at DESC);
-    `);
+  private isMissingStateFileError(error: unknown): boolean {
+    return (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "ENOENT"
+    );
   }
 }
 

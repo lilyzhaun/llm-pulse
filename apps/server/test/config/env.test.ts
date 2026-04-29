@@ -4,7 +4,9 @@ type EnvModule = typeof import("../../src/config/env.js");
 
 const ORIGINAL_ENV = process.env;
 
-const loadEnv = async (overrides: NodeJS.ProcessEnv = {}): Promise<EnvModule> => {
+const loadEnv = async (
+  overrides: NodeJS.ProcessEnv = {},
+): Promise<EnvModule> => {
   vi.resetModules();
   process.env = { ...overrides };
 
@@ -36,7 +38,10 @@ describe("env config", () => {
     const fromBffPort = await loadEnv({ BFF_PORT: "3002" });
     expect(fromBffPort.env.port).toBe(3002);
 
-    const portTakesPrecedence = await loadEnv({ PORT: "4000", BFF_PORT: "5000" });
+    const portTakesPrecedence = await loadEnv({
+      PORT: "4000",
+      BFF_PORT: "5000",
+    });
     expect(portTakesPrecedence.env.port).toBe(4000);
   });
 
@@ -63,12 +68,27 @@ describe("env config", () => {
   });
 
   it.each([
-    ["POLL_INTERVAL_MS", { POLL_INTERVAL_MS: "0" }, "POLL_INTERVAL_MS must be a positive integer"],
-    ["LOG_PAGE_SIZE", { LOG_PAGE_SIZE: "-5" }, "LOG_PAGE_SIZE must be a positive integer"],
-    ["LOG_PAGE_SIZE decimal", { LOG_PAGE_SIZE: "10.5" }, "LOG_PAGE_SIZE must be an integer"],
-  ])("throws for invalid positive integer config: %s", async (_caseName, overrides, message) => {
-    await expect(loadEnv(overrides)).rejects.toThrow(message);
-  });
+    [
+      "POLL_INTERVAL_MS",
+      { POLL_INTERVAL_MS: "0" },
+      "POLL_INTERVAL_MS must be a positive integer",
+    ],
+    [
+      "LOG_PAGE_SIZE",
+      { LOG_PAGE_SIZE: "-5" },
+      "LOG_PAGE_SIZE must be a positive integer",
+    ],
+    [
+      "LOG_PAGE_SIZE decimal",
+      { LOG_PAGE_SIZE: "10.5" },
+      "LOG_PAGE_SIZE must be an integer",
+    ],
+  ])(
+    "throws for invalid positive integer config: %s",
+    async (_caseName, overrides, message) => {
+      await expect(loadEnv(overrides)).rejects.toThrow(message);
+    },
+  );
 
   it.each(["development", "test", "production"])(
     "allows NODE_ENV=%s",
