@@ -1,13 +1,10 @@
 import type { ChannelAvailability } from "@llm-pulse/shared";
 import { formatPercent } from "../lib/format";
+import { formatLatency } from "../lib/formatters";
 import { StatusBadge } from "./StatusBadge";
 
 export interface PulseRowProps {
   channel: ChannelAvailability;
-}
-
-function formatLatency(value: number | null) {
-  return value === null ? "暂无" : `${value.toFixed(1)}s`;
 }
 
 export function PulseRow({ channel }: PulseRowProps) {

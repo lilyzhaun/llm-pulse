@@ -8,32 +8,16 @@ import {
   useState,
 } from "react";
 import { formatPercent } from "../lib/format";
+import { formatLatencyWithLabel } from "../lib/formatters";
+import { useHeartbeatSlotCount } from "../contexts/HeartbeatSlotContext";
 import { StatusBadge } from "./StatusBadge";
 
 export interface ModelPulseCardProps {
   model: ModelAvailability;
 }
 
-const DESKTOP_HEARTBEAT_SLOT_COUNT = 60;
-const MOBILE_HEARTBEAT_SLOT_COUNT = 30;
-const MOBILE_HEARTBEAT_QUERY = "(max-width: 720px)";
-
-function getHeartbeatSlotCount() {
-  if (typeof window === "undefined") {
-    return DESKTOP_HEARTBEAT_SLOT_COUNT;
-  }
-
-  return window.matchMedia(MOBILE_HEARTBEAT_QUERY).matches
-    ? MOBILE_HEARTBEAT_SLOT_COUNT
-    : DESKTOP_HEARTBEAT_SLOT_COUNT;
-}
-
 function formatNullablePercent(value: number | null) {
   return value === null ? "暂无" : formatPercent(value);
-}
-
-function formatLatencyLabel(value: number | null) {
-  return value === null ? "Latency 暂无" : `Latency ${value.toFixed(1)}s`;
 }
 
 function formatStatusLabel(status: HeartbeatBucket["status"]) {
@@ -76,16 +60,11 @@ function formatBeatTime(value: string) {
 }
 
 function formatBeatTooltip(beat: HeartbeatBucket) {
-  const latency =
-    beat.averageLatencySeconds === null
-      ? "Latency 暂无"
-      : `Latency ${beat.averageLatencySeconds.toFixed(1)}s`;
-
   return [
     `${formatBeatTime(beat.start)} · ${formatStatusLabel(beat.status)}`,
     `Requests ${beat.totalCount}`,
     `成功率 ${formatPercent(beat.successRate)}`,
-    latency,
+    formatLatencyWithLabel(beat.averageLatencySeconds),
   ].join("\n");
 }
 
@@ -95,35 +74,8 @@ function formatBeatSummary(beat: HeartbeatBucket) {
     status: formatStatusLabel(beat.status),
     requests: beat.totalCount,
     successRate: formatPercent(beat.successRate),
-    latency:
-      beat.averageLatencySeconds === null
-        ? "Latency 暂无"
-        : `Latency ${beat.averageLatencySeconds.toFixed(1)}s`,
+    latency: formatLatencyWithLabel(beat.averageLatencySeconds),
   };
-}
-
-function useHeartbeatSlotCount() {
-  const [slotCount, setSlotCount] = useState(getHeartbeatSlotCount);
-
-  useEffect(() => {
-    const mediaQuery = window.matchMedia(MOBILE_HEARTBEAT_QUERY);
-    const updateSlotCount = () => {
-      setSlotCount(
-        mediaQuery.matches
-          ? MOBILE_HEARTBEAT_SLOT_COUNT
-          : DESKTOP_HEARTBEAT_SLOT_COUNT,
-      );
-    };
-
-    updateSlotCount();
-    mediaQuery.addEventListener("change", updateSlotCount);
-
-    return () => {
-      mediaQuery.removeEventListener("change", updateSlotCount);
-    };
-  }, []);
-
-  return slotCount;
 }
 
 function ModelPulseCardInner({ model }: ModelPulseCardProps) {
@@ -223,7 +175,7 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
       >
         <div className="heartbeat-board__header">
           <p>近 {heartbeatSlotCount} 分钟</p>
-          <p>{formatLatencyLabel(model.averageLatencySeconds)}</p>
+          <p>{formatLatencyWithLabel(model.averageLatencySeconds)}</p>
         </div>
 
         <div className="heartbeat-board__bars-shell">

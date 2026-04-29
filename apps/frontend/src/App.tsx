@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { HeartbeatSlotProvider } from "./contexts/HeartbeatSlotContext";
 import { ThemeToggle } from "./components/ThemeToggle";
 import { Dashboard } from "./pages/Dashboard";
 
@@ -165,13 +166,13 @@ export default function App() {
   };
 
   return (
-    <>
+    <HeartbeatSlotProvider>
       <Dashboard />
       <ThemeToggle
         currentTheme={resolvedTheme}
         nextTheme={nextTheme}
         onToggle={handleToggleTheme}
       />
-    </>
+    </HeartbeatSlotProvider>
   );
 }
