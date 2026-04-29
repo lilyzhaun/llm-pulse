@@ -1,5 +1,6 @@
 import { env } from "../config/env.js";
 import { UpstreamError, ValidationError } from "../errors/AppError.js";
+import { incrementUpstreamRequestErrors } from "../routes/metrics.js";
 
 export interface NewApiRequestHeaders {
   Cookie: string;
@@ -25,19 +26,27 @@ export class NewApiAuthService {
     }
 
     const loginUrl = new URL("/api/user/login", env.newApiBaseUrl);
-    const response = await fetch(loginUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        username: env.newApiAdminUsername,
-        password: env.newApiAdminPassword,
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(loginUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          username: env.newApiAdminUsername,
+          password: env.newApiAdminPassword,
+        }),
+      });
+    } catch (error) {
+      this.clearSession();
+      incrementUpstreamRequestErrors();
+      throw error;
+    }
 
     if (!response.ok) {
       this.clearSession();
+      incrementUpstreamRequestErrors();
       throw new UpstreamError(
         `new-api login failed with status ${response.status}`,
       );
@@ -49,6 +58,7 @@ export class NewApiAuthService {
 
     if (!cookie || typeof userId !== "number") {
       this.clearSession();
+      incrementUpstreamRequestErrors();
       throw new UpstreamError(
         "new-api login response did not include a session cookie and user id",
       );
