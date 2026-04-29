@@ -9,7 +9,9 @@
       ".env",
       ".env.*",
       "!.env.example",
-      "package-lock.json"
+      "package-lock.json",
+      ".sisyphus",
+      "test-results"
     ]
   },
   "formatter": {

@@ -23,6 +23,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install frontend coverage provider
+        run: npm install --no-save @vitest/coverage-v8@3.2.4 --workspace @llm-pulse/frontend
+
       - name: Run lint
         run: npm run lint
 
@@ -33,10 +36,46 @@ jobs:
         run: npm run typecheck
 
       - name: Run tests
-        run: npm test
+        run: npm test -- --coverage
 
       - name: Run security audit
         run: npm audit --audit-level=high
 
       - name: Run build
         run: npm run build
+
+  e2e:
+    needs: quality
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run build
+        run: npm run build
+
+      - name: Run Playwright tests
+        run: npx playwright test
+
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
