@@ -79,6 +79,7 @@ npm run dev:frontend
 
 - `GET /status/api/pulse`
 - `GET /status/api/health`
+- `GET /status/api/metrics`
 
 ## Build
 
@@ -134,6 +135,7 @@ npm run format
 - 静态资源：`/status/assets/*`
 - 聚合 API：`/status/api/pulse`
 - 健康检查：`/status/api/health`
+- 指标接口：`/status/api/metrics`
 
 生产环境建议先构建，再运行服务端构建产物：
 
@@ -158,7 +160,7 @@ LLM Pulse 采用 BFF 架构：
 2. 轮询服务按配置间隔抓取近期日志，并用 rewind 窗口降低漏数风险。
 3. 聚合服务按模型、渠道和时间窗口生成可用性状态。
 4. SQLite 保存轮询游标和近期状态，避免服务重启后完全丢失上下文。
-5. Express 暴露 `/status/api/pulse` 和 `/status/api/health`。
+5. Express 暴露 `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics`。
 6. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
 
 共享类型位于 `packages/shared`，用于降低前后端 API 结构漂移风险。
@@ -167,6 +169,10 @@ LLM Pulse 采用 BFF 架构：
 
 本项目面向运维可观测场景，默认只向前端提供聚合后的状态数据。开发和排障时请遵守以下原则：
 
+- `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics` 是设计上的公开只读聚合接口。该公开 API 设计决策记录在 [`docs/architecture.md`](docs/architecture.md) 的访问控制设计章节中。
+- 这些接口公开的原因是前端需要面向所有用户展示聚合后的脱敏状态，响应不得包含原始日志、管理员凭证或 PII。
+- 公开接口禁止暴露管理员凭证、session cookie、原始用户日志和上游请求正文。未来若接入敏感数据，需要重新评审访问控制策略。
+- 生产环境建议在反向代理层对 `/status/api/*` 做 rate limit；当前设计不要求为这些端点添加应用层鉴权。
 - 不把真实管理员账号、密码或 cookie 写入仓库。
 - 不提交 `.env`、生产环境变量文件或包含真实用户数据的日志。
 - 文档示例应使用占位值或匿名化数据。
