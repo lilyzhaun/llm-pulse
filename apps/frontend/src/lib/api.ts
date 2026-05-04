@@ -25,6 +25,101 @@ function createApiUrl(pathname: string) {
   ).toString();
 }
 
+function isNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isFinite(value);
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isNullableNumber(value: unknown): value is number | null {
+  return value === null || isNumber(value);
+}
+
+function isDataSource(value: unknown) {
+  if (value === undefined) {
+    return true;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    (candidate.kind === "upstream-postgres" ||
+      candidate.kind === "memory-snapshot" ||
+      candidate.kind === "empty") &&
+    isNullableString(candidate.lastQueryAt) &&
+    isNullableNumber(candidate.lastQueryDurationMs) &&
+    isNullableString(candidate.lastErrorMessage)
+  );
+}
+
+function isTokenUsage(value: unknown) {
+  if (value === undefined) {
+    return true;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return (
+    isNumber(candidate.input) &&
+    isNumber(candidate.cacheInput) &&
+    isNumber(candidate.output) &&
+    isNumber(candidate.total)
+  );
+}
+
+function isCostUsage(value: unknown) {
+  if (value === undefined) {
+    return true;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return isNumber(candidate.quota);
+}
+
+function isRateUsage(value: unknown) {
+  if (value === undefined) {
+    return true;
+  }
+
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+
+  return isNumber(candidate.average) && isNumber(candidate.peak);
+}
+
+function hasValidModelUsageFields(model: unknown) {
+  if (!model || typeof model !== "object") {
+    return false;
+  }
+
+  const candidate = model as Record<string, unknown>;
+
+  return (
+    isTokenUsage(candidate.tokens) &&
+    isCostUsage(candidate.cost) &&
+    isRateUsage(candidate.rpm) &&
+    isRateUsage(candidate.tpm)
+  );
+}
+
 function isAvailabilityResponse(
   payload: unknown,
 ): payload is AvailabilityResponse {
@@ -36,10 +131,12 @@ function isAvailabilityResponse(
 
   return (
     typeof candidate.generatedAt === "string" &&
+    isDataSource(candidate.dataSource) &&
     Boolean(candidate.window) &&
     Boolean(candidate.heartbeat) &&
     Boolean(candidate.summary) &&
-    Array.isArray(candidate.models)
+    Array.isArray(candidate.models) &&
+    candidate.models.every(hasValidModelUsageFields)
   );
 }
 
