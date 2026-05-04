@@ -3,76 +3,26 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { aggregationService } from "./services/aggregationService.js";
-import { newApiLogService } from "./services/newApiLogService.js";
-import { persistenceService } from "./services/persistenceService.js";
-import { pollingService } from "./services/pollingService.js";
+import {
+  closeUpstreamPool,
+  pingUpstreamDb,
+} from "./services/upstreamDb/pool.js";
 
-const backfillStartTimestamp = (): number =>
-  Math.max(
-    0,
-    Math.floor(Date.now() / 1000) - env.initialBackfillHours * 60 * 60,
-  );
-
-const syncLatestLogs = async (): Promise<void> => {
-  try {
-    const logs = await newApiLogService.fetchRecentLogs();
-    await aggregationService.ingestLogs(logs, {
-      lastSeenTimestamp: newApiLogService.getLastSeenTimestamp(),
-    });
-  } catch (error) {
-    await aggregationService.markPollingFailure(error, {
-      lastSeenTimestamp: newApiLogService.getLastSeenTimestamp(),
-    });
-    throw error;
-  }
-};
-
-const restoredState = await persistenceService.loadPulseState();
-newApiLogService.restoreLastSeenTimestamp(
-  restoredState?.cursor.lastSeenTimestamp ?? null,
-);
-await aggregationService.restoreFromState(restoredState);
+void aggregationService;
 
 const app = createApp();
 
-const runStartupBackfill = async (): Promise<void> => {
-  if (restoredState?.bootstrap.backfillCompletedAt) {
+void pingUpstreamDb().then((reachable) => {
+  if (reachable) {
+    logger.info("Upstream PostgreSQL sanity ping succeeded");
     return;
   }
 
-  const logs = await newApiLogService.fetchRecentLogs({
-    startTimestamp: backfillStartTimestamp(),
-    maxPages: env.initialBackfillMaxPages,
-  });
-
-  await aggregationService.ingestLogsWithState(
-    logs,
-    {
-      lastSeenTimestamp: newApiLogService.getLastSeenTimestamp(),
-    },
-    {
-      backfillCompletedAt: new Date().toISOString(),
-    },
+  logger.warn("Upstream PostgreSQL sanity ping failed; startup will continue");
+  aggregationService.markStartupQueryFailure(
+    new Error("Upstream PostgreSQL sanity ping failed"),
   );
-};
-
-void runStartupBackfill()
-  .catch((error) => {
-    logger.error({ error }, "Initial backfill failed");
-  })
-  .finally(() => {
-    void pollingService.runNow(syncLatestLogs).catch((error) => {
-      logger.error({ error }, "Initial new-api sync failed");
-    });
-  });
-
-pollingService.start(async () => {
-  try {
-    await syncLatestLogs();
-  } catch (error) {
-    logger.error({ error }, "Scheduled new-api sync failed");
-  }
-}, env.pollIntervalMs);
+});
 
 const server = app.listen(env.port, () => {
   logger.info({ port: env.port }, "llm-pulse BFF listening");
@@ -93,16 +43,23 @@ server.on("error", (error: NodeJS.ErrnoException) => {
 
 const shutdown = (signal: NodeJS.Signals) => {
   logger.info({ signal }, "Received shutdown signal, shutting down server");
-  pollingService.stop();
   server.close((error) => {
-    persistenceService.close();
+    void (async () => {
+      await closeUpstreamPool();
 
-    if (error) {
-      logger.error({ error }, "Failed to shut down server cleanly");
+      if (error) {
+        logger.error({ error }, "Failed to shut down server cleanly");
+        process.exit(1);
+      }
+
+      process.exit(0);
+    })().catch((shutdownError) => {
+      logger.error(
+        { error: shutdownError },
+        "Failed to close upstream pool cleanly",
+      );
       process.exit(1);
-    }
-
-    process.exit(0);
+    });
   });
 };
 
