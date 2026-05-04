@@ -17,15 +17,26 @@ const safePollingStatus = (
   };
 };
 
+const upstreamDbStatus = (
+  pollingStatus: ReturnType<typeof aggregationService.getPollingStatus>,
+) => ({
+  reachable: pollingStatus?.lastQuerySucceeded !== false,
+  lastSuccessAt:
+    pollingStatus?.lastQuerySucceeded === true
+      ? pollingStatus.lastQueryAt
+      : null,
+});
+
 healthRouter.get("/", (_request, response) => {
   const pollingStatus = aggregationService.getPollingStatus();
-  const healthStatus =
-    pollingStatus?.lastPollSucceeded === false ? "degraded" : "ok";
+  const upstreamDb = upstreamDbStatus(pollingStatus);
+  const healthStatus = upstreamDb.reachable ? "ok" : "degraded";
 
   response.json({
     status: healthStatus,
     service: "llm-pulse-bff",
     uptimeSeconds: Math.round(process.uptime()),
     polling: safePollingStatus(pollingStatus),
+    upstreamDb,
   });
 });
