@@ -2,6 +2,12 @@ import { expect, test } from "@playwright/test";
 
 const pulseSnapshot = {
   generatedAt: "2026-04-29T00:00:00.000Z",
+  dataSource: {
+    kind: "upstream-postgres",
+    lastQueryAt: "2026-04-29T00:00:00.000Z",
+    lastQueryDurationMs: 12,
+    lastErrorMessage: null,
+  },
   window: {
     seconds: 3600,
     from: "2026-04-28T23:00:00.000Z",
@@ -30,6 +36,23 @@ const pulseSnapshot = {
       successRate: 1,
       averageLatencySeconds: 0.5,
       lastSeenAt: "2026-04-29T00:00:00.000Z",
+      tokens: {
+        input: 2500,
+        cacheInput: 500,
+        output: 750,
+        total: 3750,
+      },
+      cost: {
+        quota: 45.67,
+      },
+      rpm: {
+        average: 3,
+        peak: 7,
+      },
+      tpm: {
+        average: 1250,
+        peak: 3750,
+      },
       heartbeat: {
         healthyBuckets: 1,
         degradedBuckets: 0,
@@ -110,9 +133,16 @@ test("Dashboard smoke 场景可加载并显示标题", async ({ page }) => {
 
   await page.goto("./");
 
-  await expect(page).toHaveTitle(/LLM Pulse/);
-  await expect(page.getByRole("heading", { name: "LLM Pulse" })).toBeVisible();
+  await expect(page).toHaveTitle(/dammapi状态监控/);
+  await expect(
+    page.getByRole("heading", { name: "dammapi状态监控" }),
+  ).toBeVisible();
   await expect(page.getByText("smoke-model")).toBeVisible();
+  await page.getByRole("button", { name: /smoke-model/i }).click();
+  await expect(page.getByText("输入 tokens", { exact: true })).toBeVisible();
+  await expect(page.getByText("2,500 (2.5K)")).toBeVisible();
+  await expect(page.getByText("45.67")).toBeVisible();
+  await expect(page.getByText("1.3K TPM / 3.8K TPM")).toBeVisible();
 
   expect(fatalConsoleMessages).toEqual([]);
 });

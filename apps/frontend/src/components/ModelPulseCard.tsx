@@ -8,7 +8,12 @@ import {
   useState,
 } from "react";
 import { formatPercent } from "../lib/format";
-import { formatLatencyWithLabel } from "../lib/formatters";
+import {
+  formatLatencyWithLabel,
+  formatQuota,
+  formatRate,
+  formatTokens,
+} from "../lib/formatters";
 import { useHeartbeatSlotCount } from "../contexts/HeartbeatSlotContext";
 import { StatusBadge } from "./StatusBadge";
 
@@ -165,6 +170,49 @@ function ModelPulseCardInner({ model }: ModelPulseCardProps) {
           <span>Requests</span>
           <strong>{model.totalCount}</strong>
         </div>
+      </div>
+
+      <div
+        className={`model-card__summary-wrapper${
+          isExpanded ? " model-card__summary-wrapper--open" : ""
+        }`}
+        aria-hidden={!isExpanded}
+      >
+        <dl
+          className="model-card__summary"
+          aria-label={`${model.modelName} 用量概览`}
+        >
+          <div>
+            <dt>输入 tokens</dt>
+            <dd>{formatTokens(model.tokens?.input ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>缓存输入 tokens</dt>
+            <dd>{formatTokens(model.tokens?.cacheInput ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>输出 tokens</dt>
+            <dd>{formatTokens(model.tokens?.output ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>Quota</dt>
+            <dd>{formatQuota(model.cost?.quota ?? 0)}</dd>
+          </div>
+          <div>
+            <dt>RPM avg / peak</dt>
+            <dd>
+              {formatRate(model.rpm?.average ?? 0, "RPM")} /{" "}
+              {formatRate(model.rpm?.peak ?? 0, "RPM")}
+            </dd>
+          </div>
+          <div>
+            <dt>TPM avg / peak</dt>
+            <dd>
+              {formatRate(model.tpm?.average ?? 0, "TPM")} /{" "}
+              {formatRate(model.tpm?.peak ?? 0, "TPM")}
+            </dd>
+          </div>
+        </dl>
       </div>
 
       <section

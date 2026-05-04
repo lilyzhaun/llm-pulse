@@ -26,6 +26,23 @@ function createModel(
     successRate: 0.9,
     averageLatencySeconds: 1.5,
     lastSeenAt: "2026-04-29T10:00:00.000Z",
+    tokens: {
+      input: 1234,
+      cacheInput: 56,
+      output: 789,
+      total: 2079,
+    },
+    cost: {
+      quota: 12.34,
+    },
+    rpm: {
+      average: 2.5,
+      peak: 9,
+    },
+    tpm: {
+      average: 1200,
+      peak: 3456,
+    },
     heartbeat: {
       healthyBuckets: 1,
       degradedBuckets: 0,
@@ -130,7 +147,7 @@ describe("Dashboard", () => {
     renderDashboard();
 
     expect(
-      await screen.findByRole("heading", { name: "LLM Pulse" }),
+      await screen.findByRole("heading", { name: "dammapi状态监控" }),
     ).not.toBeNull();
     expect(screen.getByText("Models")).not.toBeNull();
     expect(screen.getByText("0")).not.toBeNull();
@@ -149,13 +166,22 @@ describe("Dashboard", () => {
     expect(
       await screen.findByRole("heading", { name: "gpt-4.1" }),
     ).not.toBeNull();
-    expect(screen.getByRole("heading", { name: "LLM Pulse" })).not.toBeNull();
+    expect(
+      screen.getByRole("heading", { name: "dammapi状态监控" }),
+    ).not.toBeNull();
     expect(screen.getByText("按最近 Request 排序")).not.toBeNull();
     expect(
       screen
         .getByLabelText("gpt-4.1 最近 Heartbeat")
         .getAttribute("data-beat-count"),
     ).toBe("1");
+    screen.getByRole("button", { name: /gpt-4.1/i }).click();
+    expect(screen.getByText("输入 tokens")).not.toBeNull();
+    expect(screen.getByText("1,234 (1.2K)")).not.toBeNull();
+    expect(screen.getByText("Quota")).not.toBeNull();
+    expect(screen.getByText("12.34")).not.toBeNull();
+    expect(screen.getByText("RPM avg / peak")).not.toBeNull();
+    expect(screen.getByText("1.2K TPM / 3.5K TPM")).not.toBeNull();
 
     await waitFor(() => {
       expect(getAvailabilitySnapshotMock).toHaveBeenCalledTimes(1);
