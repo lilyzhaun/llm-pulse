@@ -92,6 +92,7 @@ export class AggregationService {
   private lastQuerySucceeded: boolean | null = null;
   private lastErrorMessage: string | null = null;
   private lastQueryDurationMs: number | null = null;
+  private inflightRefresh: Promise<AvailabilityResponse> | null = null;
 
   async restoreFromState(_state: unknown): Promise<void> {
     this.lastSnapshot = null;
@@ -139,10 +140,35 @@ export class AggregationService {
   }
 
   async getAggregatedPulse(): Promise<AvailabilityResponse> {
-    return this.refresh();
+    if (this.lastSnapshot) {
+      return this.lastSnapshot;
+    }
+
+    if (this.inflightRefresh) {
+      return this.inflightRefresh;
+    }
+
+    return this.buildFallbackResponse(nowIso());
   }
 
   async refresh(): Promise<AvailabilityResponse> {
+    if (this.inflightRefresh) {
+      return this.inflightRefresh;
+    }
+
+    const refreshPromise = this.runRefresh();
+    this.inflightRefresh = refreshPromise;
+
+    try {
+      return await refreshPromise;
+    } finally {
+      if (this.inflightRefresh === refreshPromise) {
+        this.inflightRefresh = null;
+      }
+    }
+  }
+
+  private async runRefresh(): Promise<AvailabilityResponse> {
     const queryStartedAt = process.hrtime.bigint();
     const window = this.buildQueryWindow();
 
@@ -183,7 +209,9 @@ export class AggregationService {
         { error: scrubPgError(error) },
         "Failed to query upstream PostgreSQL for pulse snapshot",
       );
-      return this.buildFallbackResponse(window.generatedAt);
+      const fallback = this.buildFallbackResponse(window.generatedAt);
+      this.lastSnapshot = fallback;
+      return fallback;
     } finally {
       observeAggregationDurationSeconds(elapsedSecondsSince(queryStartedAt));
     }

@@ -175,7 +175,7 @@ describe("AggregationService", () => {
     });
   });
 
-  it("returns degraded memory snapshot when PostgreSQL fails after a successful refresh", async () => {
+  it("serves the cached snapshot to readers without triggering a new upstream query", async () => {
     mockSuccessfulQuery();
     const service = new AggregationService();
     const snapshot = await service.refresh();
@@ -183,6 +183,25 @@ describe("AggregationService", () => {
     vi.setSystemTime(new Date(NEXT_GENERATED_AT));
     mockFailedQuery();
 
+    const response = await service.getAggregatedPulse();
+
+    expect(response).toBe(snapshot);
+    expect(mockUpstreamDb.getModelAggregates).toHaveBeenCalledTimes(1);
+    expect(service.getPollingStatus()).toMatchObject({
+      lastQueryAt: GENERATED_AT,
+      lastQuerySucceeded: true,
+    });
+  });
+
+  it("exposes degraded memory snapshot after a scheduled refresh failure", async () => {
+    mockSuccessfulQuery();
+    const service = new AggregationService();
+    const snapshot = await service.refresh();
+
+    vi.setSystemTime(new Date(NEXT_GENERATED_AT));
+    mockFailedQuery();
+
+    await service.refresh();
     const response = await service.getAggregatedPulse();
 
     expect(response.generatedAt).toBe(NEXT_GENERATED_AT);
@@ -207,7 +226,7 @@ describe("AggregationService", () => {
     });
   });
 
-  it("returns degraded empty snapshot when PostgreSQL fails before any successful refresh", async () => {
+  it("returns an empty snapshot for readers before any refresh has happened", async () => {
     mockFailedQuery();
     const service = new AggregationService();
 
@@ -217,9 +236,9 @@ describe("AggregationService", () => {
       generatedAt: GENERATED_AT,
       dataSource: {
         kind: "empty",
-        lastQueryAt: GENERATED_AT,
-        lastQueryDurationMs: expect.any(Number),
-        lastErrorMessage: "connection refused for password=[redacted]",
+        lastQueryAt: null,
+        lastQueryDurationMs: null,
+        lastErrorMessage: null,
       },
       window: {
         from: GENERATED_AT,
@@ -241,6 +260,22 @@ describe("AggregationService", () => {
       },
       models: [],
     });
+    expect(mockUpstreamDb.getModelAggregates).not.toHaveBeenCalled();
+  });
+
+  it("deduplicates concurrent refresh calls into a single upstream query", async () => {
+    mockSuccessfulQuery();
+    const service = new AggregationService();
+
+    const [first, second] = await Promise.all([
+      service.refresh(),
+      service.refresh(),
+    ]);
+
+    expect(first).toBe(second);
+    expect(mockUpstreamDb.getModelAggregates).toHaveBeenCalledTimes(1);
+    expect(mockUpstreamDb.getChannelAggregates).toHaveBeenCalledTimes(1);
+    expect(mockUpstreamDb.getHeartbeatBuckets).toHaveBeenCalledTimes(1);
   });
 
   it("records startup query failure before any refresh", () => {

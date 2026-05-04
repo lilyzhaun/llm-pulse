@@ -3,25 +3,40 @@ import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
 import { aggregationService } from "./services/aggregationService.js";
+import { startRefreshScheduler } from "./services/refreshScheduler.js";
 import {
   closeUpstreamPool,
   pingUpstreamDb,
+  scrubPgError,
 } from "./services/upstreamDb/pool.js";
-
-void aggregationService;
 
 const app = createApp();
 
-void pingUpstreamDb().then((reachable) => {
-  if (reachable) {
-    logger.info("Upstream PostgreSQL sanity ping succeeded");
+void pingUpstreamDb().then(async (reachable) => {
+  if (!reachable) {
+    logger.warn(
+      "Upstream PostgreSQL sanity ping failed; startup will continue",
+    );
+    aggregationService.markStartupQueryFailure(
+      new Error("Upstream PostgreSQL sanity ping failed"),
+    );
     return;
   }
 
-  logger.warn("Upstream PostgreSQL sanity ping failed; startup will continue");
-  aggregationService.markStartupQueryFailure(
-    new Error("Upstream PostgreSQL sanity ping failed"),
-  );
+  logger.info("Upstream PostgreSQL sanity ping succeeded");
+  try {
+    await aggregationService.refresh();
+  } catch (error) {
+    logger.warn(
+      { error: scrubPgError(error) },
+      "Initial pulse refresh failed; will retry on schedule",
+    );
+  }
+});
+
+const refreshScheduler = startRefreshScheduler({
+  intervalMs: env.refreshIntervalMs,
+  service: aggregationService,
 });
 
 const server = app.listen(env.port, () => {
@@ -43,6 +58,7 @@ server.on("error", (error: NodeJS.ErrnoException) => {
 
 const shutdown = (signal: NodeJS.Signals) => {
   logger.info({ signal }, "Received shutdown signal, shutting down server");
+  refreshScheduler.stop();
   server.close((error) => {
     void (async () => {
       await closeUpstreamPool();
