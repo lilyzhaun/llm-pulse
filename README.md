@@ -8,7 +8,7 @@ LLM Pulse 是一个隐私保护优先的模型可用性仪表盘，用于从 `ne
 
 本仓库使用 npm workspaces：
 
-- `apps/server`：Express BFF，使用 `pg` 连接池直读 `new-api` PostgreSQL `logs` 表，按请求窗口聚合状态，并提供 REST API。服务端只维护轻量内存快照。
+- `apps/server`：Express BFF，使用 `pg` 连接池直读 `new-api` PostgreSQL `logs` 表，并仅保留在 `abilities` 表中存在 `enabled=true` 记录的模型，按请求窗口聚合状态并提供 REST API。服务端只维护轻量内存快照。
 - `apps/frontend`：Vite + React 前端仪表盘，构建 base path 为 `/status/`。
 - `packages/shared`：共享类型包，维护前端聚合可用性响应类型和 additive 扩展字段。
 
@@ -58,7 +58,7 @@ PULSE_DB_CONN_TIMEOUT_MS=2000
 
 | 配置 | 说明 |
 | --- | --- |
-| `DATABASE_URL` | 必填。BFF 访问 `new-api` PostgreSQL 的连接串，建议使用只读用户，只允许读取 `logs` 表所需字段。 |
+| `DATABASE_URL` | 必填。BFF 访问 `new-api` PostgreSQL 的连接串，建议使用只读用户，只允许读取 `logs` 与 `abilities` 表所需字段。 |
 | `BFF_PORT` / `PORT` | BFF 监听端口。开发示例为 `3001`，生产可通过 `PORT` 或 `BFF_PORT` 覆盖。 |
 | `PULSE_REFRESH_INTERVAL_MS` | 前端和运维语义上的刷新间隔。 |
 | `AVAILABILITY_WINDOW_SECONDS` | 可用性聚合窗口长度。 |
@@ -165,9 +165,9 @@ curl https://ai.exesim.com/status/api/pulse
 
 LLM Pulse 采用 BFF 架构：
 
-1. `apps/server` 使用 `DATABASE_URL` 建立 `pg` 连接池，直读上游 `new-api` PostgreSQL `logs` 表。
+1. `apps/server` 使用 `DATABASE_URL` 建立 `pg` 连接池，直读上游 `new-api` PostgreSQL `logs` 表，并用 `abilities.enabled=true` 过滤可见模型。
 2. 聚合服务按配置窗口查询模型、渠道和心跳桶数据，并在内存中保留最近一次成功快照。
-3. `/status/api/pulse` 返回脱敏聚合结果，包含 `dataSource` 和模型级 `tokens`、`cost`、`rpm`、`tpm`。
+3. `/status/api/pulse` 返回脱敏聚合结果，包含 `dataSource` 和模型级 `tokens`、`cost`、`rpm`、`tpm`；`summary` 与 `models` 只统计通过 `abilities.enabled=true` 过滤后的模型集合。
 4. PostgreSQL 不可达时，BFF 不把连接错误作为 5xx 直接暴露给前端，而是返回内存快照或空快照，并通过 `dataSource.kind` 标记数据来源。
 5. Express 暴露 `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics`。
 6. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
@@ -184,7 +184,7 @@ LLM Pulse 采用 BFF 架构：
 - 生产环境建议在反向代理层对 `/status/api/*` 做 rate limit；当前设计不要求为这些端点添加应用层鉴权。
 - `DATABASE_URL` 必须使用占位值写入文档和示例，不能提交真实密码、真实内网地址或真实容器 IP。
 - 响应和日志中的 PostgreSQL 错误必须脱敏，不应泄露连接串、密码、host 或 `host:port`。
-- 生产环境建议为 BFF 创建 PostgreSQL 只读用户，只授予查询 `logs` 表的最小权限。
+- 生产环境建议为 BFF 创建 PostgreSQL 只读用户，只授予查询 `logs` 与 `abilities` 表的最小权限。
 - 不提交 `.env`、生产环境变量文件或包含真实用户数据的日志。
 - 文档示例应使用占位值或匿名化数据。
 - 生产环境凭证文件应限制文件权限，只允许服务运行用户读取。
