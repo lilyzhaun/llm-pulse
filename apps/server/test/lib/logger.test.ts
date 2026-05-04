@@ -16,6 +16,7 @@ describe("logger redaction", () => {
 
   it("redacts sensitive top-level and nested fields while keeping safe fields intact", async () => {
     vi.resetModules();
+    process.env.DATABASE_URL = "postgres://user:pass@localhost:5432/pulse";
     const { logger } = await import("../../src/lib/logger.js");
 
     logger.info(

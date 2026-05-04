@@ -4,9 +4,16 @@ import {
   MODEL_LOG_RETENTION_COUNT,
 } from "../../config/constants.js";
 import { compareByCreatedAtDescThenIdDesc } from "../../lib/comparators.js";
-import type { PersistedPulseLog } from "../persistenceService.js";
 
-export type AggregationLog = PersistedPulseLog;
+export interface AggregationLog {
+  id: number;
+  created_at: number;
+  type: number;
+  model_name: string;
+  use_time: number;
+  channel: number;
+  channel_name: string;
+}
 
 export const sanitizeLog = (log: NewApiLogItem): AggregationLog => ({
   id: log.id,
