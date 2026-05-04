@@ -123,6 +123,12 @@ WITH bucketed_logs AS (
     AND logs.type IN (2, 5)
     AND logs.model_name IS NOT NULL
     AND logs.model_name <> ''
+    AND EXISTS (
+      SELECT 1
+      FROM abilities
+      WHERE abilities.model = logs.model_name
+        AND abilities.enabled = true
+    )
 ), ranked_buckets AS (
   SELECT
     model_name,

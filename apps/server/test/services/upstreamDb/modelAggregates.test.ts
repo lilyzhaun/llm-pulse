@@ -104,6 +104,18 @@ describe("getModelAggregates", () => {
     expect(MODEL_AGGREGATES_SQL).not.toContain("other ::json");
   });
 
+  it("filters visible models through enabled abilities only", () => {
+    expect(MODEL_AGGREGATES_SQL).toContain("EXISTS (");
+    expect(MODEL_AGGREGATES_SQL).toContain("FROM abilities");
+    expect(MODEL_AGGREGATES_SQL).toContain(
+      "abilities.model = logs.model_name",
+    );
+    expect(MODEL_AGGREGATES_SQL).toContain("abilities.enabled = true");
+    expect(MODEL_AGGREGATES_SQL).not.toMatch(/channels\.status\s*=\s*1/i);
+    expect(MODEL_AGGREGATES_SQL).not.toMatch(/\bgroup_id\b/i);
+    expect(MODEL_AGGREGATES_SQL).not.toMatch(/\bgroup_name\b/i);
+  });
+
   it("preserves bigint boundary values through numeric row parsing", () => {
     const nearSafeInteger = "9007199254740991";
     const mapped = mapModelAggregateRow({
