@@ -6,10 +6,18 @@ export type AvailabilityStatus =
 
 export interface AvailabilityResponse {
   generatedAt: string;
+  dataSource?: AvailabilityDataSource;
   window: AvailabilityWindow;
   heartbeat: HeartbeatWindow;
   summary: AvailabilitySummary;
   models: ModelAvailability[];
+}
+
+export interface AvailabilityDataSource {
+  kind: "upstream-postgres" | "memory-snapshot" | "empty";
+  lastQueryAt: string | null;
+  lastQueryDurationMs: number | null;
+  lastErrorMessage: string | null;
 }
 
 export interface AvailabilityWindow {
@@ -35,9 +43,29 @@ export interface ModelAvailability {
   successRate: number;
   averageLatencySeconds: number | null;
   lastSeenAt: string | null;
+  tokens?: ModelTokenUsage;
+  cost?: ModelCostUsage;
+  rpm?: ModelRateUsage;
+  tpm?: ModelRateUsage;
   heartbeat: HeartbeatSummary;
   beats: HeartbeatBucket[];
   channels: ChannelAvailability[];
+}
+
+export interface ModelTokenUsage {
+  input: number;
+  cacheInput: number;
+  output: number;
+  total: number;
+}
+
+export interface ModelCostUsage {
+  quota: number;
+}
+
+export interface ModelRateUsage {
+  average: number;
+  peak: number;
 }
 
 export interface ChannelAvailability {
