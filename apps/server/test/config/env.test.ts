@@ -8,7 +8,10 @@ const loadEnv = async (
   overrides: NodeJS.ProcessEnv = {},
 ): Promise<EnvModule> => {
   vi.resetModules();
-  process.env = { ...overrides };
+  process.env = {
+    DATABASE_URL: "postgres://user:pass@localhost:5432/pulse",
+    ...overrides,
+  };
 
   return import("../../src/config/env.js");
 };
@@ -16,7 +19,7 @@ const loadEnv = async (
 describe("env config", () => {
   beforeEach(() => {
     vi.resetModules();
-    process.env = {};
+    process.env = { DATABASE_URL: "postgres://user:pass@localhost:5432/pulse" };
   });
 
   afterEach(() => {
@@ -57,34 +60,38 @@ describe("env config", () => {
     );
   });
 
-  it("parses valid positive integer configuration values", async () => {
+  it("parses valid refresh interval and PostgreSQL settings", async () => {
     const { env } = await loadEnv({
-      POLL_INTERVAL_MS: "15000",
-      LOG_PAGE_SIZE: "100",
+      PULSE_REFRESH_INTERVAL_MS: "15000",
+      AVAILABILITY_WINDOW_SECONDS: "3600",
+      DATABASE_URL: "postgres://user:pass@localhost:5432/pulse",
     });
 
-    expect(env.pollIntervalMs).toBe(15_000);
-    expect(env.logPageSize).toBe(100);
+    expect(env.refreshIntervalMs).toBe(15_000);
+    expect(env.availabilityWindowSeconds).toBe(3_600);
+    expect(env.databaseUrl).toBe("postgres://user:pass@localhost:5432/pulse");
   });
 
   it.each([
     [
-      "POLL_INTERVAL_MS",
-      { POLL_INTERVAL_MS: "0" },
-      "POLL_INTERVAL_MS must be a positive integer",
+      "PULSE_REFRESH_INTERVAL_MS",
+      {
+        PULSE_REFRESH_INTERVAL_MS: "0",
+        DATABASE_URL: "postgres://localhost/db",
+      },
+      "PULSE_REFRESH_INTERVAL_MS must be a positive integer",
     ],
     [
-      "LOG_PAGE_SIZE",
-      { LOG_PAGE_SIZE: "-5" },
-      "LOG_PAGE_SIZE must be a positive integer",
+      "AVAILABILITY_WINDOW_SECONDS",
+      {
+        AVAILABILITY_WINDOW_SECONDS: "-5",
+        DATABASE_URL: "postgres://localhost/db",
+      },
+      "AVAILABILITY_WINDOW_SECONDS must be a positive integer",
     ],
-    [
-      "LOG_PAGE_SIZE decimal",
-      { LOG_PAGE_SIZE: "10.5" },
-      "LOG_PAGE_SIZE must be an integer",
-    ],
+    ["DATABASE_URL missing", { DATABASE_URL: "" }, "DATABASE_URL is required"],
   ])(
-    "throws for invalid positive integer config: %s",
+    "throws for invalid configuration: %s",
     async (_caseName, overrides, message) => {
       await expect(loadEnv(overrides)).rejects.toThrow(message);
     },

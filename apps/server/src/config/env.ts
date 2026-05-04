@@ -63,19 +63,6 @@ const parsePositiveInteger = (
   return parsed;
 };
 
-const parseNonNegativeInteger = (
-  name: string,
-  value: string | undefined,
-  fallback: number,
-): number => {
-  const parsed = parseInteger(name, value, fallback);
-  if (parsed < 0) {
-    throw new Error(`${name} must be a non-negative integer`);
-  }
-
-  return parsed;
-};
-
 const parsePort = (value: string | undefined, fallback: number): number => {
   if (!value) {
     return fallback;
@@ -105,16 +92,25 @@ if (nodeEnv !== "production") {
 
 const port = parsePort(process.env.PORT ?? process.env.BFF_PORT, 3001);
 
-export const env = {
+const parseRequiredString = (
+  name: string,
+  value: string | undefined,
+): string => {
+  if (!value?.trim()) {
+    throw new Error(`${name} is required`);
+  }
+
+  return value.trim();
+};
+
+const currentEnv = {
   nodeEnv,
   port,
   logLevel: process.env.LOG_LEVEL,
-  newApiBaseUrl: process.env.NEW_API_BASE_URL ?? "",
-  newApiAdminUsername: process.env.NEW_API_ADMIN_USERNAME ?? "",
-  newApiAdminPassword: process.env.NEW_API_ADMIN_PASSWORD ?? "",
-  pollIntervalMs: parsePositiveInteger(
-    "POLL_INTERVAL_MS",
-    process.env.POLL_INTERVAL_MS,
+  databaseUrl: parseRequiredString("DATABASE_URL", process.env.DATABASE_URL),
+  refreshIntervalMs: parsePositiveInteger(
+    "PULSE_REFRESH_INTERVAL_MS",
+    process.env.PULSE_REFRESH_INTERVAL_MS ?? process.env.POLL_INTERVAL_MS,
     20_000,
   ),
   availabilityWindowSeconds: parsePositiveInteger(
@@ -122,31 +118,28 @@ export const env = {
     process.env.AVAILABILITY_WINDOW_SECONDS,
     3_600,
   ),
-  logPageSize: parsePositiveInteger(
-    "LOG_PAGE_SIZE",
-    process.env.LOG_PAGE_SIZE,
-    50,
+  queryTimeoutMs: parsePositiveInteger(
+    "PULSE_QUERY_TIMEOUT_MS",
+    process.env.PULSE_QUERY_TIMEOUT_MS,
+    5_000,
   ),
-  logMaxPagesPerPoll: parsePositiveInteger(
-    "LOG_MAX_PAGES_PER_POLL",
-    process.env.LOG_MAX_PAGES_PER_POLL,
+  dbPoolMax: parsePositiveInteger(
+    "PULSE_DB_POOL_MAX",
+    process.env.PULSE_DB_POOL_MAX,
     5,
   ),
-  logRewindSeconds: parseNonNegativeInteger(
-    "LOG_REWIND_SECONDS",
-    process.env.LOG_REWIND_SECONDS,
-    60,
+  dbIdleTimeoutMs: parsePositiveInteger(
+    "PULSE_DB_IDLE_TIMEOUT_MS",
+    process.env.PULSE_DB_IDLE_TIMEOUT_MS,
+    30_000,
   ),
-  initialBackfillHours: parsePositiveInteger(
-    "INITIAL_BACKFILL_HOURS",
-    process.env.INITIAL_BACKFILL_HOURS,
-    24,
-  ),
-  initialBackfillMaxPages: parsePositiveInteger(
-    "INITIAL_BACKFILL_MAX_PAGES",
-    process.env.INITIAL_BACKFILL_MAX_PAGES,
-    100,
+  dbConnTimeoutMs: parsePositiveInteger(
+    "PULSE_DB_CONN_TIMEOUT_MS",
+    process.env.PULSE_DB_CONN_TIMEOUT_MS,
+    2_000,
   ),
 } as const;
+
+export const env = currentEnv;
 
 export const isProduction = env.nodeEnv === "production";
