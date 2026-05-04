@@ -17,26 +17,22 @@ EnvironmentFile=-/etc/llm-pulse.env
 # 非敏感默认值可保留在 unit 中，EnvironmentFile 仅用于覆盖或补充生产环境变量。
 Environment=NODE_ENV=production
 Environment=PORT=43130
-Environment=NEW_API_BASE_URL=http://127.0.0.1:3000
-Environment=PULSE_DB_FILE=/var/lib/llm-pulse/pulse-state.sqlite
-Environment=POLL_INTERVAL_MS=20000
-Environment=LOG_PAGE_SIZE=50
-Environment=LOG_MAX_PAGES_PER_POLL=5
+Environment=PULSE_REFRESH_INTERVAL_MS=20000
 
-# NEW_API_ADMIN_USERNAME / NEW_API_ADMIN_PASSWORD 建议由 /etc/llm-pulse.env 提供，
-# 不要把真实凭证写回仓库模板或直接硬编码在 unit 里。
+# DATABASE_URL 必须由 /etc/llm-pulse.env 提供，并使用只读数据库用户。
+# 示例仅使用脱敏占位值：DATABASE_URL=postgresql://llm_pulse_readonly:REDACTED_PASSWORD@postgres.example.internal:5432/newapi
+# 不要把真实连接串写回仓库模板或直接硬编码在 unit 里。
 
-# 启动前确保数据目录存在；服务以 root 运行时不需要额外 chown。
-ExecStartPre=/bin/mkdir -p /var/lib/llm-pulse
+# 启动前确保前端构建目录存在；服务以 root 运行时不需要额外 chown。
 ExecStartPre=/bin/mkdir -p /opt/llm-pulse/apps/frontend/dist
 
 ExecStart=/usr/bin/node /opt/llm-pulse/apps/server/dist/index.js
 
-# 优雅关闭：SIGINT → 停轮询 → 关 HTTP → 退出
+# 优雅关闭：SIGINT → 关 HTTP → 关上游连接池 → 退出
 KillSignal=SIGINT
 TimeoutStopSec=30
 
-# 资源限制：避免轮询和 SQLite 缓存异常放大内存/CPU 占用。
+# 资源限制：避免查询风暴或异常缓存放大内存/CPU 占用。
 MemoryMax=512M
 MemoryHigh=384M
 CPUQuota=80%
@@ -50,7 +46,6 @@ StartLimitBurst=5
 NoNewPrivileges=yes
 ProtectSystem=strict
 ProtectHome=yes
-ReadWritePaths=/var/lib/llm-pulse
 ReadOnlyPaths=/opt/llm-pulse
 
 # 日志

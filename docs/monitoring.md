@@ -13,10 +13,15 @@ LLM Pulse 在 BFF 上暴露 Prometheus 文本格式指标：
 该端点包含两类指标：
 
 1. `prom-client` 默认 Node.js 进程指标，例如进程 CPU、内存、事件循环、GC 和 Node.js 版本相关指标。
-2. LLM Pulse 应用级 gauge：
+2. LLM Pulse 应用级指标：
    - `llm_pulse_uptime_seconds`：BFF 进程已运行秒数。
-   - `llm_pulse_polling_healthy`：最近一次轮询是否成功，`1` 表示健康，`0` 表示降级。
-   - `llm_pulse_polling_last_timestamp_seconds`：最近一次轮询发生的 Unix 秒级时间戳；服务尚未产生轮询时间时可能暂时没有样本。
+   - `llm_pulse_polling_healthy`：兼容旧命名的查询健康状态，`1` 表示最近查询未失败，`0` 表示降级。
+   - `llm_pulse_polling_last_timestamp_seconds`：最近一次 PostgreSQL 查询尝试的 Unix 秒级时间戳；服务尚未产生查询时间时可能暂时没有样本。
+   - `llm_pulse_poll_duration_seconds`：BFF 刷新编排耗时直方图。
+   - `llm_pulse_aggregation_duration_seconds`：聚合逻辑耗时直方图。
+   - `llm_pulse_upstream_db_query_duration_seconds`：上游 PostgreSQL 查询耗时直方图。
+   - `llm_pulse_upstream_db_query_errors_total`：上游 PostgreSQL 查询失败总数。
+   - `llm_pulse_upstream_db_reachable`：上游 PostgreSQL 当前是否可达，`1` 表示可达，`0` 表示降级。
 
 人工检查时可以先从本机访问：
 
@@ -60,24 +65,60 @@ scrape_configs:
 
 ## 告警规则建议
 
-以下规则仅使用当前实现中真实存在的指标名。阈值应按实际 `POLL_INTERVAL_MS`、网络条件和告警噪声调整。
+以下规则仅使用当前实现中真实存在的指标名。阈值应按实际 `PULSE_REFRESH_INTERVAL_MS`、网络条件和告警噪声调整。
 
-### 轮询健康降级
+### 上游 PostgreSQL 不可达
 
-最近一次轮询失败时，`llm_pulse_polling_healthy` 会变为 `0`。该告警用于发现上游 `new-api` 不可达、管理员凭证失效、上游响应结构异常或持久化链路导致的轮询失败。
+最近一次 PostgreSQL 查询失败时，`llm_pulse_upstream_db_reachable` 会变为 `0`。该告警用于发现 `DATABASE_URL` 配置错误、数据库网络不可达、认证失败、权限不足或查询超时。
 
 ```yaml
 groups:
   - name: llm-pulse
     rules:
-      - alert: LLMPulsePollingDegraded
-        expr: llm_pulse_polling_healthy == 0
+      - alert: LLMPulseUpstreamDbUnreachable
+        expr: llm_pulse_upstream_db_reachable == 0
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: LLM Pulse 轮询处于降级状态
-          description: 最近一次 LLM Pulse 轮询失败。请检查 /status/api/health、systemd journal、上游 new-api 可达性和管理员凭证。
+          summary: LLM Pulse 上游 PostgreSQL 不可达
+          description: 最近一次 LLM Pulse PostgreSQL 查询失败。请检查 /status/api/health 中的 upstreamDb、systemd journal、DATABASE_URL、数据库网络和 logs 表权限。
+```
+
+### 上游 PostgreSQL 查询错误增加
+
+`llm_pulse_upstream_db_query_errors_total` 是递增 counter。该告警用于捕捉持续查询失败，即使可达性 gauge 因短暂恢复而抖动，也能看到错误增长。
+
+```yaml
+groups:
+  - name: llm-pulse
+    rules:
+      - alert: LLMPulseUpstreamDbQueryErrors
+        expr: increase(llm_pulse_upstream_db_query_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse PostgreSQL 查询错误增加
+          description: 最近 5 分钟内 upstream-db 查询错误数增加。请检查 PostgreSQL 连接参数、权限、查询超时和 BFF 日志。
+```
+
+### 上游 PostgreSQL 查询变慢
+
+`llm_pulse_upstream_db_query_duration_seconds` 是直方图。该告警用于发现数据库响应变慢或 `logs` 表查询压力升高。
+
+```yaml
+groups:
+  - name: llm-pulse
+    rules:
+      - alert: LLMPulseUpstreamDbQuerySlow
+        expr: histogram_quantile(0.95, rate(llm_pulse_upstream_db_query_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse PostgreSQL 查询变慢
+          description: upstream-db 查询 P95 超过 2 秒。请检查 logs 表数据量、索引、数据库负载和 PULSE_QUERY_TIMEOUT_MS。
 ```
 
 ### Metrics 端点不可达
@@ -100,34 +141,34 @@ groups:
 
 如果使用的 `job_name` 不是 `llm-pulse`，请同步调整表达式中的 `job` 标签。
 
-### 轮询长期未更新
+### 查询时间戳长期未更新
 
-`llm_pulse_polling_last_timestamp_seconds` 表示最近一次轮询时间。它可以发现进程仍可抓取 metrics，但轮询循环长时间没有推进的情况。
+`llm_pulse_polling_last_timestamp_seconds` 表示最近一次 PostgreSQL 查询尝试时间。它可以发现进程仍可抓取 metrics，但刷新循环长时间没有推进的情况。
 
 ```yaml
 groups:
   - name: llm-pulse
     rules:
-      - alert: LLMPulsePollingStale
+      - alert: LLMPulseQueryTimestampStale
         expr: time() - llm_pulse_polling_last_timestamp_seconds > 300
         for: 2m
         labels:
           severity: warning
         annotations:
-          summary: LLM Pulse 轮询时间戳长期未更新
-          description: 最近一次轮询时间距离当前已超过 5 分钟。请结合 POLL_INTERVAL_MS 检查轮询服务、上游 new-api 和应用日志。
+          summary: LLM Pulse 查询时间戳长期未更新
+          description: 最近一次 PostgreSQL 查询时间距离当前已超过 5 分钟。请结合 PULSE_REFRESH_INTERVAL_MS 检查服务刷新、数据库连接和应用日志。
 ```
 
-如果服务刚启动且尚未产生轮询状态，该指标可能暂时没有样本。首次接入时可以先观察一段时间，再决定是否为缺失样本单独配置告警。
+如果服务刚启动且尚未产生查询状态，该指标可能暂时没有样本。首次接入时可以先观察一段时间，再决定是否为缺失样本单独配置告警。
 
 ## Alertmanager 使用建议
 
-Alertmanager 模板应把告警定位信息放在最前面，便于值班人员快速分辨是进程不可达、轮询降级还是轮询停滞。建议包含：
+Alertmanager 模板应把告警定位信息放在最前面，便于值班人员快速分辨是进程不可达、上游 PostgreSQL 不可达还是查询变慢。建议包含：
 
 - 告警名、严重级别、`job`、`instance` 和 `service` 标签。
-- 触发值或表达式含义，例如 `llm_pulse_polling_healthy=0` 或 metrics `up=0`。
+- 触发值或表达式含义，例如 `llm_pulse_upstream_db_reachable=0`、查询错误 counter 增长或 metrics `up=0`。
 - 入口链接：公开仪表盘 `/status/`、健康检查 `/status/api/health`、metrics `/status/api/metrics`。
-- 排障动作：执行 `systemctl is-active llm-pulse`，查看 `journalctl -u llm-pulse -n 200 --no-pager`，再对照 `docs/ops-runbook.md` 的故障分类处理。
+- 排障动作：执行 `systemctl is-active llm-pulse`，查看 `journalctl -u llm-pulse -n 200 --no-pager`，再对照 `docs/ops-runbook.md` 的 upstream-db 故障分类处理。
 
 模板方向示例：
 
@@ -137,17 +178,17 @@ Alertmanager 模板应把告警定位信息放在最前面，便于值班人员�
 级别：{{ .CommonLabels.severity }}
 实例：{{ .CommonLabels.instance }}
 说明：{{ range .Alerts }}{{ .Annotations.description }}{{ end }}
-排障：先检查 /status/api/health，再查看 systemd 状态和 journalctl -u llm-pulse -n 200 --no-pager。
+排障：先检查 /status/api/health 的 upstreamDb，再查看 systemd 状态和 journalctl -u llm-pulse -n 200 --no-pager。
 {{- end }}
 ```
 
-实际生产模板可以按团队通知渠道拆分为简短标题和详细正文，但不要在通知里包含管理员账号、密码、cookie、原始用户日志或请求正文。
+实际生产模板可以按团队通知渠道拆分为简短标题和详细正文，但不要在通知里包含 `DATABASE_URL`、数据库密码、内部主机名、原始用户日志或请求正文。
 
 ## 与 Health 探活的关系
 
 `/status/api/health` 和 `/status/api/metrics` 解决的问题不同，建议同时保留：
 
-- `/status/api/health` 返回 JSON，适合 systemd/Nginx/人工排障做快速探活；其中 `status=degraded` 表示 BFF 可访问，但最近一次轮询失败。
+- `/status/api/health` 返回 JSON，适合 systemd/Nginx/人工排障做快速探活；其中 `status=degraded` 和 `upstreamDb.reachable=false` 表示 BFF 可访问，但上游 PostgreSQL 当前不可达或最近查询失败。
 - `/status/api/metrics` 返回 Prometheus 文本格式，适合持续抓取、时间序列留存、趋势观察和 Alertmanager 告警。
 
-排障时优先用 `health` 判断当前状态，再用 metrics 和 Prometheus 历史数据判断问题持续时间、是否频繁抖动，以及是否与进程重启或上游异常同时发生。
+排障时优先用 `health` 判断当前状态，再用 metrics 和 Prometheus 历史数据判断问题持续时间、是否频繁抖动，以及是否与进程重启或数据库异常同时发生。
