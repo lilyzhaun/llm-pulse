@@ -32,10 +32,7 @@ describe("getHeartbeatBuckets", () => {
       },
     ]);
 
-    expect(query).toHaveBeenCalledWith(
-      HEARTBEAT_SQL,
-      [1_704_070_800],
-    );
+    expect(query).toHaveBeenCalledWith(HEARTBEAT_SQL, [1_704_070_800]);
     expect(HEARTBEAT_SQL).toContain("logs.created_at < $1::bigint");
     expect(HEARTBEAT_SQL).toContain("bucket_rank <= 60");
     expect(HEARTBEAT_SQL).toContain(

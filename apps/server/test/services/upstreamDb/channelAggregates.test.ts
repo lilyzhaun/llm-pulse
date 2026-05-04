@@ -36,10 +36,7 @@ describe("getChannelAggregates", () => {
       },
     ]);
 
-    expect(query).toHaveBeenCalledWith(
-      CHANNEL_AGGREGATES_SQL,
-      [1_704_070_800],
-    );
+    expect(query).toHaveBeenCalledWith(CHANNEL_AGGREGATES_SQL, [1_704_070_800]);
     expect(CHANNEL_AGGREGATES_SQL).toContain(
       "COALESCE(scoped_logs.channel_id, 0) AS channel_id",
     );

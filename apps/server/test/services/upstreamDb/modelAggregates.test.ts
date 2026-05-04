@@ -54,10 +54,7 @@ describe("getModelAggregates", () => {
       },
     ]);
 
-    expect(query).toHaveBeenCalledWith(
-      MODEL_AGGREGATES_SQL,
-      [1_704_070_800],
-    );
+    expect(query).toHaveBeenCalledWith(MODEL_AGGREGATES_SQL, [1_704_070_800]);
   });
 
   it("returns an empty list for an empty window", async () => {

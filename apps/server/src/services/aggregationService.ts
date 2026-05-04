@@ -222,19 +222,19 @@ export class AggregationService {
       .sort(this.compareModels);
 
     return {
-        generatedAt: window.generatedAt,
-        dataSource,
-        window: {
-          from: new Date(
-            Math.max(
-              0,
-              window.toEpochSeconds -
-                HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
-            ) * 1000,
-          ).toISOString(),
-          to: new Date(window.toEpochSeconds * 1000).toISOString(),
-          seconds: HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
-        },
+      generatedAt: window.generatedAt,
+      dataSource,
+      window: {
+        from: new Date(
+          Math.max(
+            0,
+            window.toEpochSeconds -
+              HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
+          ) * 1000,
+        ).toISOString(),
+        to: new Date(window.toEpochSeconds * 1000).toISOString(),
+        seconds: HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
+      },
       heartbeat: this.buildResponseHeartbeat(
         heartbeatBuckets,
         window.generatedAt,
