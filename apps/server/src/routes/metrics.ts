@@ -43,29 +43,29 @@ const pulseAggregationDurationSeconds = new Histogram({
   registers: [register],
 });
 
-const pulseUpstreamRequestErrorsTotal = new Counter({
-  name: "llm_pulse_upstream_request_errors_total",
-  help: "Total number of failed upstream new-api requests observed by LLM Pulse.",
+const pulseUpstreamDbQueryDurationSeconds = new Histogram({
+  name: "llm_pulse_upstream_db_query_duration_seconds",
+  help: "Duration of upstream PostgreSQL pulse queries in seconds.",
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
   registers: [register],
 });
 
-const pulsePersistenceSaveErrorsTotal = new Counter({
-  name: "llm_pulse_persistence_save_errors_total",
-  help: "Total number of failed LLM Pulse persistence save attempts.",
+const pulseUpstreamDbQueryErrorsTotal = new Counter({
+  name: "llm_pulse_upstream_db_query_errors_total",
+  help: "Total number of failed upstream PostgreSQL pulse queries.",
   registers: [register],
 });
 
-const pulsePersistenceLoadErrorsTotal = new Counter({
-  name: "llm_pulse_persistence_load_errors_total",
-  help: "Total number of failed LLM Pulse persistence load attempts.",
+const pulseUpstreamDbReachable = new Gauge({
+  name: "llm_pulse_upstream_db_reachable",
+  help: "Whether the upstream PostgreSQL database is currently reachable: 1 for reachable, 0 for degraded.",
   registers: [register],
 });
 
 pulsePollDurationSeconds.zero({});
 pulseAggregationDurationSeconds.zero({});
-pulseUpstreamRequestErrorsTotal.inc(0);
-pulsePersistenceSaveErrorsTotal.inc(0);
-pulsePersistenceLoadErrorsTotal.inc(0);
+pulseUpstreamDbQueryDurationSeconds.zero({});
+pulseUpstreamDbQueryErrorsTotal.inc(0);
 
 export const observePollDurationSeconds = (durationSeconds: number): void => {
   pulsePollDurationSeconds.observe(durationSeconds);
@@ -77,17 +77,17 @@ export const observeAggregationDurationSeconds = (
   pulseAggregationDurationSeconds.observe(durationSeconds);
 };
 
-export const incrementUpstreamRequestErrors = (): void => {
-  pulseUpstreamRequestErrorsTotal.inc();
+export const observeUpstreamDbQueryDurationSeconds = (
+  durationSeconds: number,
+): void => {
+  pulseUpstreamDbQueryDurationSeconds.observe(durationSeconds);
 };
 
-export const incrementPersistenceSaveErrors = (): void => {
-  pulsePersistenceSaveErrorsTotal.inc();
+export const incrementUpstreamDbQueryErrors = (): void => {
+  pulseUpstreamDbQueryErrorsTotal.inc();
 };
 
-export const incrementPersistenceLoadErrors = (): void => {
-  pulsePersistenceLoadErrorsTotal.inc();
-};
+export const incrementUpstreamRequestErrors = incrementUpstreamDbQueryErrors;
 
 export const metricsRouter = Router();
 
@@ -99,11 +99,16 @@ metricsRouter.get("/", async (_request, response, next) => {
     const pollingStatus = aggregationService.getPollingStatus();
 
     pulseUptimeSeconds.set(process.uptime());
-    pulsePollingHealthy.set(pollingStatus?.lastPollSucceeded === false ? 0 : 1);
+    pulsePollingHealthy.set(
+      pollingStatus?.lastQuerySucceeded === false ? 0 : 1,
+    );
+    pulseUpstreamDbReachable.set(
+      pollingStatus?.lastQuerySucceeded === false ? 0 : 1,
+    );
 
-    if (pollingStatus?.lastPollAt) {
+    if (pollingStatus?.lastQueryAt) {
       pulsePollingLastTimestampSeconds.set(
-        Date.parse(pollingStatus.lastPollAt) / 1000,
+        Date.parse(pollingStatus.lastQueryAt) / 1000,
       );
     }
 

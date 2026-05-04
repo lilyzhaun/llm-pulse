@@ -1,7 +1,15 @@
 import request from "supertest";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+vi.hoisted(() => {
+  process.env.DATABASE_URL = "postgres://pulse:test@localhost:5432/pulse_test";
+});
+
 import { createApp } from "../../src/app.js";
-import { incrementPersistenceSaveErrors } from "../../src/routes/metrics.js";
+import {
+  incrementUpstreamDbQueryErrors,
+  observeUpstreamDbQueryDurationSeconds,
+} from "../../src/routes/metrics.js";
 
 describe("metrics routes", () => {
   it("returns Prometheus metrics text with default and app metrics", async () => {
@@ -17,30 +25,57 @@ describe("metrics routes", () => {
     expect(response.text).toContain("# TYPE llm_pulse_uptime_seconds gauge");
     expect(response.text).toContain("llm_pulse_poll_duration_seconds");
     expect(response.text).toContain("llm_pulse_aggregation_duration_seconds");
-    expect(response.text).toContain("llm_pulse_upstream_request_errors_total");
-    expect(response.text).toContain("llm_pulse_persistence_save_errors_total");
-    expect(response.text).toContain("llm_pulse_persistence_load_errors_total");
+    expect(response.text).toContain(
+      "llm_pulse_upstream_db_query_duration_seconds",
+    );
+    expect(response.text).toContain("llm_pulse_upstream_db_query_errors_total");
+    expect(response.text).toContain("llm_pulse_upstream_db_reachable");
+    expect(response.text).not.toContain(
+      "llm_pulse_upstream_request_errors_total",
+    );
+    expect(response.text).not.toContain(
+      "llm_pulse_persistence_save_errors_total",
+    );
+    expect(response.text).not.toContain(
+      "llm_pulse_persistence_load_errors_total",
+    );
     expect(response.text).toContain("llm_pulse_poll_duration_seconds_count 0");
     expect(response.text).toContain(
       "llm_pulse_aggregation_duration_seconds_count 0",
     );
     expect(response.text).toContain(
-      "llm_pulse_upstream_request_errors_total 0",
+      "llm_pulse_upstream_db_query_duration_seconds_count 0",
     );
     expect(response.text).toContain(
-      "llm_pulse_persistence_load_errors_total 0",
+      "llm_pulse_upstream_db_query_errors_total 0",
     );
+    expect(response.text).toContain("llm_pulse_upstream_db_reachable 1");
   });
 
-  it("increments a persistence save error counter", async () => {
-    incrementPersistenceSaveErrors();
+  it("increments an upstream-db query error counter", async () => {
+    incrementUpstreamDbQueryErrors();
 
     const response = await request(createApp())
       .get("/status/api/metrics")
       .expect(200);
 
     expect(response.text).toMatch(
-      /llm_pulse_persistence_save_errors_total\s+[1-9]\d*/,
+      /llm_pulse_upstream_db_query_errors_total\s+[1-9]\d*/,
+    );
+    expect(response.text).not.toContain(
+      "llm_pulse_persistence_save_errors_total",
+    );
+  });
+
+  it("observes upstream-db query duration", async () => {
+    observeUpstreamDbQueryDurationSeconds(0.012);
+
+    const response = await request(createApp())
+      .get("/status/api/metrics")
+      .expect(200);
+
+    expect(response.text).toMatch(
+      /llm_pulse_upstream_db_query_duration_seconds_count\s+[1-9]\d*/,
     );
   });
 });
