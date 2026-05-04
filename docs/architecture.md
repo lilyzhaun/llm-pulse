@@ -6,7 +6,7 @@ LLM Pulse 是一个隐私保护优先的模型可用性仪表盘。系统由 BFF
 
 本仓库使用 npm workspaces，核心代码分为三个工作区：
 
-- `apps/server`：Express BFF。负责读取配置、建立 `pg` 连接池、查询上游 PostgreSQL `logs` 表、聚合模型和渠道可用性、维护最近一次成功的内存快照，并提供 `/status/api/*` REST API。
+- `apps/server`：Express BFF。负责读取配置、建立 `pg` 连接池、查询上游 PostgreSQL `logs` 表、根据 `abilities.enabled=true` 过滤可见模型、聚合模型和渠道可用性、维护最近一次成功的内存快照，并提供 `/status/api/*` REST API。
 - `apps/frontend`：Vite + React Dashboard。构建 base path 为 `/status/`，通过 BFF 提供的公开只读 API 渲染模型可用性、心跳桶、成功率、延迟、tokens、quota、RPM、TPM 和渠道状态。
 - `packages/shared`：共享 TypeScript 类型。维护 `AvailabilityResponse`、`AvailabilityDataSource`、`ModelAvailability`、`ChannelAvailability`、`HeartbeatBucket` 等前后端共用结构，降低 API 字段漂移风险。
 
@@ -17,7 +17,7 @@ LLM Pulse 是一个隐私保护优先的模型可用性仪表盘。系统由 BFF
 系统采用 BFF 架构，BFF 是上游 PostgreSQL 日志表与公开前端之间的唯一桥接层。
 
 ```text
-new-api PostgreSQL logs 表
+new-api PostgreSQL logs / abilities 表
         |
         | DATABASE_URL，仅服务端持有，建议只读用户
         v
@@ -38,12 +38,22 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 
 1. `apps/server` 从环境变量读取 `DATABASE_URL`、`PULSE_REFRESH_INTERVAL_MS`、`AVAILABILITY_WINDOW_SECONDS`、`PULSE_QUERY_TIMEOUT_MS`、`PULSE_DB_POOL_MAX`、`PULSE_DB_IDLE_TIMEOUT_MS`、`PULSE_DB_CONN_TIMEOUT_MS` 与端口配置。
 2. 上游查询层使用 `pg` pool 连接 `new-api` PostgreSQL，并对查询设置超时。查询参数通过 pg values 传入，不拼接用户输入。
-3. 聚合服务按当前窗口查询三组数据：模型聚合、渠道聚合、心跳 bucket。
+3. 查询层先用 `abilities.enabled=true` 过滤出可见模型，再按当前窗口查询三组数据：模型聚合、渠道聚合、心跳 bucket。
 4. 模型聚合输出请求数、成功数、错误数、成功率、平均延迟、最近观测时间，以及模型级 `tokens`、`cost.quota`、`rpm` 和 `tpm`。
 5. 心跳聚合按固定 bucket 生成每个模型的 `beats`，并汇总 `healthyBuckets`、`degradedBuckets`、`unavailableBuckets`、`unknownBuckets`、`availabilityRate`、`lastStatus` 与 `lastBeatAt`。
 6. 查询成功时，BFF 返回 `dataSource.kind=upstream-postgres`，并把本次响应保存在内存中作为 `lastSnapshot`。
 7. 查询失败时，BFF 记录脱敏后的错误消息，不返回 5xx。若存在内存快照，返回 `dataSource.kind=memory-snapshot`；若没有快照，返回 `dataSource.kind=empty` 的空响应。
 8. React Dashboard 调用这些 API，并在 `/status/` 下展示聚合后的可用性视图。
+
+## 模型可见性规则
+
+当前“可用模型集合”的权威来源不是 `logs` 表本身，而是上游 `abilities` 表。
+
+- 若某个 `logs.model_name` 在 `abilities` 中存在至少一条 `enabled=true` 记录，则该模型对 Dashboard 可见。
+- 若模型只存在于 `logs` 中，但在 `abilities` 中没有任何 `enabled=true` 记录，则不会出现在 `/status/api/pulse`。
+- 当前不按 `abilities.group` 做二次过滤，也不附加 `channels.status=1` 之类的渠道健康约束。
+
+这条规则统一应用在模型聚合、渠道聚合和心跳聚合三个查询层，避免 `summary`、`models`、`channels` 与心跳统计口径分裂。
 
 ## `dataSource` 语义
 
@@ -81,7 +91,7 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 ### `apps/server`
 
 - 配置管理：解析端口、PostgreSQL 连接串、刷新间隔、窗口长度、查询超时和连接池参数。
-- 上游访问：通过 `pg` pool 查询 `new-api` PostgreSQL `logs` 表。
+- 上游访问：通过 `pg` pool 查询 `new-api` PostgreSQL `logs` 表，并读取 `abilities` 表做模型可见性过滤。
 - 聚合计算：按模型和渠道生成可用性、心跳桶、成功率、延迟、最近出现时间、tokens、quota、RPM、TPM 和 summary。
 - 降级快照：查询成功后保存最近一次响应；查询失败时返回内存快照或空快照。
 - API 输出：提供 `/status/api/pulse`、`/status/api/health` 与 `/status/api/metrics`。
@@ -133,7 +143,7 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 - `/status/api/pulse` 只返回模型、渠道和时间窗口上的聚合结果，不暴露原始用户日志、请求正文、单条请求记录或用户级明细。
 - `/status/api/health` 用于探活和排障，生产环境中的错误消息应保持脱敏，避免把连接串、内部主机名、账号或密码泄露给客户端。
 - 文档、测试和示例应使用占位值或匿名化数据。
-- 生产环境建议为 BFF 创建只读 PostgreSQL 用户，只授予读取 `logs` 表所需字段的最小权限。
+- 生产环境建议为 BFF 创建只读 PostgreSQL 用户，只授予读取 `logs` 与 `abilities` 表所需字段的最小权限。
 
 这条边界让公开 Dashboard 可以展示服务质量趋势，同时避免把数据库访问能力和用户请求明细传给浏览器。
 

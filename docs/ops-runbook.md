@@ -15,7 +15,7 @@ curl -f https://ai.exesim.com/status/api/pulse
 - `systemctl is-active` 不是 `active`：优先检查 systemd、环境变量、工作目录和端口占用。
 - 本机 `health` 失败，但服务为 `active`：优先检查应用日志、端口监听和环境变量。
 - 本机 `health` 正常，公网 `pulse` 失败：优先检查 Nginx `/status/` 反代和 TLS 配置。
-- `health.status` 为 `degraded` 且 `upstreamDb.reachable=false`：BFF 进程仍在运行，但上游 PostgreSQL 不可达或查询失败，需要检查 `DATABASE_URL`、网络、数据库权限和 `logs` 表。
+- `health.status` 为 `degraded` 且 `upstreamDb.reachable=false`：BFF 进程仍在运行，但上游 PostgreSQL 不可达或查询失败，需要检查 `DATABASE_URL`、网络、数据库权限以及 `logs` / `abilities` 表可读性。
 
 ## 服务状态检查
 
@@ -85,7 +85,8 @@ curl -f https://ai.exesim.com/status/api/pulse
 1. `dataSource.kind` 是否为 `upstream-postgres`。如果是 `memory-snapshot` 或 `empty`，先排查 PostgreSQL 可达性。
 2. `upstreamDb.reachable` 是否为 `false`。
 3. 上游 `logs` 表是否有当前 `AVAILABILITY_WINDOW_SECONDS` 窗口内的数据。
-4. `DATABASE_URL`、`PULSE_QUERY_TIMEOUT_MS`、`PULSE_DB_POOL_MAX`、`PULSE_DB_CONN_TIMEOUT_MS` 是否配置合理。
+4. 若期望中的模型缺失，检查 `abilities` 表里是否存在对应模型的 `enabled=true` 记录；没有的话该模型会被 BFF 过滤掉。
+5. `DATABASE_URL`、`PULSE_QUERY_TIMEOUT_MS`、`PULSE_DB_POOL_MAX`、`PULSE_DB_CONN_TIMEOUT_MS` 是否配置合理。
 
 ## 上游 PostgreSQL 排障
 
@@ -124,13 +125,14 @@ docker exec postgres psql -U newapi -d newapi -c 'SELECT COUNT(*) FROM logs;'
 
 ### 检查权限
 
-生产建议创建只读用户给 LLM Pulse 使用。该用户只需要读取 `logs` 表所需字段，不需要写权限、DDL 权限或管理员权限。
+生产建议创建只读用户给 LLM Pulse 使用。该用户只需要读取 `logs` 与 `abilities` 表所需字段，不需要写权限、DDL 权限或管理员权限。
 
 可以用只读用户验证最小查询能力：
 
 ```bash
 psql 'postgresql://llm_pulse_readonly:REDACTED_PASSWORD@postgres.example.internal:5432/newapi' -c 'SELECT 1;'
 psql 'postgresql://llm_pulse_readonly:REDACTED_PASSWORD@postgres.example.internal:5432/newapi' -c 'SELECT COUNT(*) FROM logs;'
+psql 'postgresql://llm_pulse_readonly:REDACTED_PASSWORD@postgres.example.internal:5432/newapi' -c 'SELECT COUNT(*) FROM abilities WHERE enabled = true;'
 ```
 
 命令中的连接串必须先替换为脱敏占位值再分享。若排障必须在终端中使用真实值，确保 shell 历史和日志不会被公开。
@@ -208,7 +210,7 @@ journalctl -u llm-pulse -n 100 --no-pager
 1. 检查 `/etc/llm-pulse.env` 中 `DATABASE_URL` 是否是服务进程能访问的地址。
 2. 确认 PostgreSQL 容器或服务正在运行，并且 BFF 所在网络能访问它。
 3. 如果没有端口映射，不要用宿主机 `127.0.0.1:5432` 作为连接地址。改用容器网络 IP、Docker 网络服务名，或显式映射端口后再使用宿主机地址。
-4. 使用 `SELECT 1` 和 `SELECT COUNT(*) FROM logs` 验证连接、权限和表存在。
+4. 使用 `SELECT 1`、`SELECT COUNT(*) FROM logs` 和 `SELECT COUNT(*) FROM abilities WHERE enabled = true` 验证连接、权限和表存在。
 5. 检查 `PULSE_QUERY_TIMEOUT_MS` 和 `PULSE_DB_CONN_TIMEOUT_MS` 是否过短。
 6. 修正配置后执行 `systemctl restart llm-pulse`，再检查 `health` 是否回到 `ok`。
 
@@ -226,7 +228,7 @@ journalctl -u llm-pulse -n 100 --no-pager
 2. 在 PostgreSQL 中检查 `logs` 表是否有当前窗口内的数据。
 3. 确认日志中的模型名称、请求类型、成功失败字段符合当前聚合口径。
 4. 查看 `/status/api/metrics` 中 `llm_pulse_upstream_db_query_errors_total` 是否持续增加。
-5. 如果只有个别模型缺失，先检查上游是否真的写入了该模型的记录，避免把上游无数据误判为 BFF 故障。
+5. 如果只有个别模型缺失，先检查上游是否真的写入了该模型的记录，再检查 `abilities` 中是否存在对应模型的 `enabled=true` 记录，避免把可见性过滤误判为 BFF 故障。
 
 ### `DATABASE_URL` 权限或脱敏问题
 
@@ -238,7 +240,7 @@ journalctl -u llm-pulse -n 100 --no-pager
 处理：
 
 1. 立即轮换泄露的数据库密码。
-2. 确认 BFF 使用只读用户，且权限只覆盖 `logs` 表所需读取范围。
+2. 确认 BFF 使用只读用户，且权限只覆盖 `logs` 与 `abilities` 表所需读取范围。
 3. 检查 `/etc/llm-pulse.env` 权限，建议为 `600`。
 4. 检查应用日志、shell 历史和工单附件，删除或脱敏完整连接串。
 5. 重启服务并确认 `/status/api/health` 返回 `ok`。

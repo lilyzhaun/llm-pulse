@@ -1,6 +1,6 @@
 # API 文档
 
-LLM Pulse 暴露的是公开只读聚合接口，用于前端仪表盘读取服务健康状态和模型可用性摘要。接口只返回从 `new-api` PostgreSQL `logs` 表计算出的脱敏聚合结果，不包含原始用户日志明细、数据库连接串、请求正文或单条请求记录。
+LLM Pulse 暴露的是公开只读聚合接口，用于前端仪表盘读取服务健康状态和模型可用性摘要。接口只返回从 `new-api` PostgreSQL `logs` 表计算、并结合 `abilities.enabled=true` 可见性规则过滤后的脱敏聚合结果，不包含原始用户日志明细、数据库连接串、请求正文或单条请求记录。
 
 所有接口路径都以 `/status/api` 开头。JSON 接口响应体均为 JSON。
 
@@ -79,6 +79,8 @@ PostgreSQL 不可达时，该接口仍返回 200 JSON，示例：
 
 返回当前模型可用性脉冲数据。该接口由 BFF 直接查询 PostgreSQL 后生成，面向前端展示聚合状态，不暴露原始用户日志明细。
 
+模型可见性规则：只有在上游 `abilities` 表中存在至少一条 `enabled=true` 记录的模型，才会出现在该接口的 `models`、`summary`、`channels` 与心跳统计中。不按 `group` 再做二次过滤。
+
 ### 请求
 
 - 方法：`GET`
@@ -93,8 +95,8 @@ PostgreSQL 不可达时，该接口仍返回 200 JSON，示例：
 | `dataSource` | `object` | 响应数据来源和最近查询状态。 |
 | `window` | `object` | 聚合统计窗口，包含 `from`、`to` 和 `seconds`。 |
 | `heartbeat` | `object` | 心跳桶窗口，包含 `bucketSeconds`、`bucketCount`、`from` 和 `to`。 |
-| `summary` | `object` | 模型总览计数，包含 `totalModels`、`availableModels`、`degradedModels`、`unavailableModels` 和 `unknownModels`。 |
-| `models` | `array` | 按模型聚合的可用性列表。每个模型包含状态、成功数、错误数、成功率、平均延迟、最近出现时间、模型级用量、心跳摘要、心跳桶和渠道聚合结果。 |
+| `summary` | `object` | 模型总览计数，包含 `totalModels`、`availableModels`、`degradedModels`、`unavailableModels` 和 `unknownModels`。这些计数只覆盖通过 `abilities.enabled=true` 过滤后的可见模型。 |
+| `models` | `array` | 按模型聚合的可用性列表。每个模型包含状态、成功数、错误数、成功率、平均延迟、最近出现时间、模型级用量、心跳摘要、心跳桶和渠道聚合结果。列表只包含通过 `abilities.enabled=true` 过滤后的可见模型。 |
 
 ### `dataSource` 字段
 
@@ -128,7 +130,7 @@ PostgreSQL 不可达时，该接口仍返回 200。若 `kind=memory-snapshot`，
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `modelName` | `string` | 模型名称。 |
+| `modelName` | `string` | 模型名称。只有在 `abilities` 中存在至少一条 `enabled=true` 记录时才会出现。 |
 | `status` | `"available"`、`"degraded"`、`"unavailable"` 或 `"unknown"` | 模型聚合可用性状态。 |
 | `successCount` | `number` | 聚合窗口内成功请求数。 |
 | `errorCount` | `number` | 聚合窗口内错误请求数。 |
@@ -217,7 +219,7 @@ PostgreSQL 不可达时，该接口仍返回 200。若 `kind=memory-snapshot`，
 }
 ```
 
-`beats` 中的每个元素包含 `start`、`end`、`status`、`successCount`、`errorCount`、`totalCount`、`successRate` 和 `averageLatencySeconds`。`channels` 中的每个元素包含 `channelId`、`channelName`、`status`、`successCount`、`errorCount`、`totalCount`、`successRate`、`averageLatencySeconds`、`lastSeenAt`、`heartbeat` 和 `beats`。
+`beats` 中的每个元素包含 `start`、`end`、`status`、`successCount`、`errorCount`、`totalCount`、`successRate` 和 `averageLatencySeconds`。`channels` 中的每个元素包含 `channelId`、`channelName`、`status`、`successCount`、`errorCount`、`totalCount`、`successRate`、`averageLatencySeconds`、`lastSeenAt`、`heartbeat` 和 `beats`。这些渠道和心跳聚合同样只覆盖通过 `abilities.enabled=true` 过滤后的模型日志。
 
 ## GET /status/api/metrics
 
