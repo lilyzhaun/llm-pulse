@@ -1,0 +1,9 @@
+# Default maintainers for all repository changes.
+* @maintainers
+
+# Security-sensitive areas should receive maintainer review.
+/.github/ @maintainers
+/deploy/ @maintainers
+/Dockerfile @maintainers
+/docker-compose.yml @maintainers
+/SECURITY.md @maintainers
