@@ -22,12 +22,15 @@ COPY apps/frontend/index.html apps/frontend/
 COPY apps/frontend/src/ apps/frontend/src/
 COPY biome.json ./
 
-RUN npm run build
+RUN npm run build --workspace @llm-pulse/shared \
+ && npm run build --workspace @llm-pulse/frontend \
+ && npm run build --workspace @llm-pulse/server
 
 # ---- Runtime Stage ----
 FROM node:22-alpine
 
 RUN addgroup -S llm-pulse && adduser -S llm-pulse -G llm-pulse
+RUN apk add --no-cache tini
 
 WORKDIR /app
 
@@ -39,17 +42,22 @@ COPY --from=builder /build/apps/server/dist/ apps/server/dist/
 COPY --from=builder /build/apps/server/package.json apps/server/
 COPY --from=builder /build/apps/frontend/dist/ apps/frontend/dist/
 
-RUN mkdir -p /var/lib/llm-pulse && chown llm-pulse:llm-pulse /var/lib/llm-pulse
-
 USER llm-pulse
+
+LABEL org.opencontainers.image.title="llm-pulse" \
+  org.opencontainers.image.description="LLM Pulse dashboard" \
+  org.opencontainers.image.version="0.1.0" \
+  org.opencontainers.image.licenses="MIT" \
+  org.opencontainers.image.source="https://github.com/exesim/llm-pulse"
 
 ENV NODE_ENV=production
 ENV PORT=43130
-ENV PULSE_DB_FILE=/var/lib/llm-pulse/pulse-state.sqlite
+ENV BFF_BIND_HOST=0.0.0.0
 
 EXPOSE 43130
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
   CMD node -e "fetch('http://localhost:43130/status/api/health').then(r=>{if(!r.ok)process.exit(1)})"
 
+ENTRYPOINT ["/sbin/tini", "--"]
 CMD ["node", "apps/server/dist/index.js"]

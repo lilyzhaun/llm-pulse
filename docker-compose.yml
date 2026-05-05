@@ -4,17 +4,16 @@ services:
       context: .
       dockerfile: Dockerfile
     image: llm-pulse:local
-    env_file:
-      - .env
     environment:
+      DATABASE_URL: ${DATABASE_URL:?DATABASE_URL is required for container startup}
       PORT: "43130"
-      BFF_PORT: "43130"
-      PULSE_DB_FILE: /var/lib/llm-pulse/pulse-state.sqlite
+      BFF_BIND_HOST: "0.0.0.0"
+      PULSE_REFRESH_INTERVAL_MS: ${PULSE_REFRESH_INTERVAL_MS:-20000}
+      AVAILABILITY_WINDOW_SECONDS: ${AVAILABILITY_WINDOW_SECONDS:-3600}
+      PULSE_QUERY_TIMEOUT_MS: ${PULSE_QUERY_TIMEOUT_MS:-5000}
+      PULSE_DB_POOL_MAX: ${PULSE_DB_POOL_MAX:-5}
+      PULSE_DB_IDLE_TIMEOUT_MS: ${PULSE_DB_IDLE_TIMEOUT_MS:-30000}
+      PULSE_DB_CONN_TIMEOUT_MS: ${PULSE_DB_CONN_TIMEOUT_MS:-2000}
     ports:
-      - "43130:43130"
-    volumes:
-      - llm_pulse_data:/var/lib/llm-pulse
+      - "127.0.0.1:43130:43130"
     restart: unless-stopped
-
-volumes:
-  llm_pulse_data:
