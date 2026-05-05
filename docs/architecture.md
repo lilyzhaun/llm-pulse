@@ -32,7 +32,7 @@ apps/server Express BFF
 apps/frontend React Dashboard
 ```
 
-BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据库连接串、数据库账号、密码或单条请求日志。服务端不持久化本地状态，只在进程内保存最近一次成功聚合快照，用于上游数据库短暂不可达时降级返回。
+BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据库连接串、数据库账号、密码或单条请求日志。服务端仍会保留最近一次成功聚合的进程内快照，并且在启用 `PULSE_SNAPSHOT_ENABLED=true` 时，会额外持久化本地 SQLite snapshot，用于缩小 steady-state 刷新需要扫描的原始日志范围。
 
 ## 数据流
 
@@ -41,9 +41,28 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 3. 查询层先用 `abilities.enabled=true` 过滤出可见模型，再按当前窗口查询三组数据：模型聚合、渠道聚合、心跳 bucket。
 4. 模型聚合输出请求数、成功数、错误数、成功率、平均延迟、最近观测时间，以及模型级 `tokens`、`cost.quota`、`rpm` 和 `tpm`。
 5. 心跳聚合按固定 bucket 生成每个模型的 `beats`，并汇总 `healthyBuckets`、`degradedBuckets`、`unavailableBuckets`、`unknownBuckets`、`availabilityRate`、`lastStatus` 与 `lastBeatAt`。
-6. 查询成功时，BFF 返回 `dataSource.kind=upstream-postgres`，并把本次响应保存在内存中作为 `lastSnapshot`。
-7. 查询失败时，BFF 记录脱敏后的错误消息，不返回 5xx。若存在内存快照，返回 `dataSource.kind=memory-snapshot`；若没有快照，返回 `dataSource.kind=empty` 的空响应。
-8. React Dashboard 调用这些 API，并在 `/status/` 下展示聚合后的可用性视图。
+6. 当 `PULSE_SNAPSHOT_ENABLED=false` 时，BFF 直接查询 PostgreSQL 并生成响应；当 `PULSE_SNAPSHOT_ENABLED=true` 且 bootstrap 完成时，BFF 优先从本地 SQLite snapshot 读取 `/status/api/pulse`，并在后台只回查最近一个小窗口的日志。
+7. 查询成功时，BFF 返回 `dataSource.kind=upstream-postgres`，并把本次响应保存在内存中作为 `lastSnapshot`。
+8. 查询失败时，BFF 记录脱敏后的错误消息，不返回 5xx。若存在内存快照，返回 `dataSource.kind=memory-snapshot`；若没有快照，返回 `dataSource.kind=empty` 的空响应。
+9. React Dashboard 调用这些 API，并在 `/status/` 下展示聚合后的可用性视图。
+
+## 增量快照层
+
+启用 `PULSE_SNAPSHOT_ENABLED=true` 后，`apps/server` 会在 `apps/server/data/pulse-snapshot.sqlite` 维护一个本地 SQLite snapshot。这个 snapshot 不是最终 API 响应缓存，而是可继续聚合的桶级中间态：
+
+- `snapshot_meta`：schema version、covered-until watermark、bootstrap/refresh 时间戳。
+- `enabled_models`：最近一次成功同步的 `abilities.enabled=true` 模型集合。
+- `model_buckets`：每个模型最近 60 个非空分钟桶的请求数、延迟累计、tokens 和 quota。
+- `channel_buckets`：每个模型/渠道组合在这些分钟桶内的聚合结果。
+- `processed_logs`：重叠回查窗口内已经处理过的 `log_id`，用于去重。
+
+快照层遵循以下规则：
+
+1. **窗口语义**：每个模型保留最近 60 个非空分钟桶，而不是最近 60 个 wall-clock 分钟。
+2. **bootstrap**：首次初始化不加时间 lower bound，倒序扫描历史日志，直到每个 enabled 模型都收集到 60 个非空桶或表耗尽。
+3. **incremental refresh**：每轮只查询 `[covered_until - PULSE_RECONCILE_SECONDS, now)` 的日志，并用 `processed_logs` 去重，吸收同秒写入与短时间迟到日志。
+4. **降级策略**：snapshot open/bootstrap/refresh 失败时，不删除 SQLite 文件、不暴露路径，而是回退到现有 PostgreSQL 路径或已有内存快照。
+5. **公开 API 合约不变**：即使底层来自 SQLite，`/status/api/pulse` 仍返回 `dataSource.kind=upstream-postgres`，`window.seconds` 仍保持 `3600` 的名义值，以兼容当前前端校验。
 
 ## 模型可见性规则
 

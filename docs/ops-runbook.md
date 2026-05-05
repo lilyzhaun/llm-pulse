@@ -63,6 +63,7 @@ curl -f https://ai.exesim.com/status/api/health
 - `polling`：兼容命名的查询状态。服务刚启动时可能为 `null`。
 - `upstreamDb.reachable`：上游 PostgreSQL 是否可达。
 - `upstreamDb.lastSuccessAt`：最近一次成功查询时间，失败或尚无成功查询时为 `null`。
+- `snapshot`：本地 SQLite 快照状态，包括是否启用、是否 ready、最近 refresh 时间、covered-until watermark 和 lag 秒数。
 
 判断方式：
 
@@ -87,6 +88,66 @@ curl -f https://ai.exesim.com/status/api/pulse
 3. 上游 `logs` 表是否有当前 `AVAILABILITY_WINDOW_SECONDS` 窗口内的数据。
 4. 若期望中的模型缺失，检查 `abilities` 表里是否存在对应模型的 `enabled=true` 记录；没有的话该模型会被 BFF 过滤掉。
 5. `DATABASE_URL`、`PULSE_QUERY_TIMEOUT_MS`、`PULSE_DB_POOL_MAX`、`PULSE_DB_CONN_TIMEOUT_MS` 是否配置合理。
+6. 若 `snapshot.enabled=true`，检查 `snapshot.ready`、`snapshot.coveredUntil`、`snapshot.lagSeconds` 是否在推进；lag 持续扩大说明本地增量快照卡住或上游回查失败。
+
+## SQLite snapshot 运维
+
+### 快照文件位置
+
+- SQLite 主文件：`/root/repos/llm-pulse/apps/server/data/pulse-snapshot.sqlite`
+- WAL 文件：`/root/repos/llm-pulse/apps/server/data/pulse-snapshot.sqlite-wal`
+- SHM 文件：`/root/repos/llm-pulse/apps/server/data/pulse-snapshot.sqlite-shm`
+
+systemd 当前已通过 `ReadWritePaths=/root/repos/llm-pulse/apps/server/data` 允许服务写这些文件，不需要为快照层额外修改线上 unit。
+
+### 重建 snapshot
+
+当 SQLite 文件损坏、schema mismatch 或需要强制重建时：
+
+```bash
+systemctl stop llm-pulse
+rm -f /root/repos/llm-pulse/apps/server/data/pulse-snapshot.sqlite*
+systemctl start llm-pulse
+curl -f http://127.0.0.1:43130/status/api/health
+```
+
+重启后服务会自动重新 bootstrap。bootstrap 完成前，`/status/api/pulse` 仍可能继续走直接 PostgreSQL 路径或返回已有内存快照；以 `/status/api/health` 的 `snapshot.ready=true` 作为完成信号。
+
+### 灰度启用 snapshot 主路径
+
+```bash
+grep '^PULSE_SNAPSHOT_' /etc/llm-pulse.env
+sudoedit /etc/llm-pulse.env
+systemctl restart llm-pulse
+curl -f http://127.0.0.1:43130/status/api/health
+curl -f http://127.0.0.1:43130/status/api/metrics
+```
+
+建议配置：
+
+```env
+PULSE_SNAPSHOT_ENABLED=true
+PULSE_SNAPSHOT_PATH=apps/server/data/pulse-snapshot.sqlite
+PULSE_RECONCILE_SECONDS=120
+PULSE_BOOTSTRAP_BATCH_SIZE=1000
+```
+
+验证点：
+
+1. `snapshot.enabled=true`
+2. `snapshot.ready=true`（bootstrap 结束后）
+3. `llm_pulse_snapshot_enabled 1`
+4. `llm_pulse_snapshot_ready 1`
+5. `llm_pulse_snapshot_lag_seconds` 维持在合理范围内（通常应低于 300 秒）
+
+### 回滚到直接 PostgreSQL 聚合
+
+```bash
+sudoedit /etc/llm-pulse.env
+systemctl restart llm-pulse
+```
+
+把 `PULSE_SNAPSHOT_ENABLED` 改回 `false` 即可。SQLite 文件可以保留在磁盘上，后续重新启用时会继续使用；如需释放空间，再按“重建 snapshot”步骤删除。
 
 ## 上游 PostgreSQL 排障
 

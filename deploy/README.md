@@ -45,6 +45,17 @@ npm run build --workspace @llm-pulse/server && node apps/server/dist/index.js
 
 当前宿主机通过 systemd `EnvironmentFile=/etc/llm-pulse.env` 注入生产配置。`/etc/llm-pulse.env` 是生产配置源，仓库根目录 `.env` 只用于本地开发，不保存生产 secret。请通过 systemd、容器平台或密钥管理系统注入 `DATABASE_URL`、`BFF_BIND_HOST`、`PORT`/`BFF_PORT`、`PULSE_REFRESH_INTERVAL_MS`、`AVAILABILITY_WINDOW_SECONDS` 和 PostgreSQL 连接池参数，避免把连接串写入代码目录。非容器部署应保留 `BFF_BIND_HOST=127.0.0.1`，避免 BFF 直接暴露到公网网卡；Docker Compose 已在容器内显式设置 `BFF_BIND_HOST=0.0.0.0` 以支持端口发布。
 
+如果启用本地 SQLite snapshot 主路径，还需要同步配置：
+
+```env
+PULSE_SNAPSHOT_ENABLED=true
+PULSE_SNAPSHOT_PATH=apps/server/data/pulse-snapshot.sqlite
+PULSE_RECONCILE_SECONDS=120
+PULSE_BOOTSTRAP_BATCH_SIZE=1000
+```
+
+这些变量默认让 BFF 在 `apps/server/data/` 维护 `pulse-snapshot.sqlite`、`pulse-snapshot.sqlite-wal` 和 `pulse-snapshot.sqlite-shm`。当前 systemd 模板已经通过 `ReadWritePaths=/root/repos/llm-pulse/apps/server/data` 允许服务写入这些文件，因此不需要为 snapshot 层额外修改线上 unit。
+
 `DATABASE_URL` 是 BFF 访问 `new-api` PostgreSQL `logs` 表的连接串。生产已使用 least-privilege DB 账号，只授予读取 `logs` 与 `abilities` 表所需字段的最小权限。即使当前 systemd 模板仍以 `root` 运行，数据库权限也保持只读，避免 BFF 进程拥有写入或 DDL 能力。
 
 如果 PostgreSQL 在容器内运行，本机示例不要默认写 `127.0.0.1:5432`。只有 PostgreSQL 容器显式做了端口映射时，宿主机本地端口才可用。未映射时，应让 BFF 通过容器网络 IP、Docker 网络服务名，或部署平台提供的内部 DNS 访问 PostgreSQL。
@@ -132,3 +143,4 @@ curl http://127.0.0.1:43130/status/api/metrics
 - `health.upstreamDb.reachable=true`，除非正在验证数据库不可达降级
 - `pulse.dataSource.kind=upstream-postgres`，并包含模型级 `tokens`、`cost`、`rpm` 和 `tpm`
 - metrics 包含 `llm_pulse_upstream_db_reachable`、`llm_pulse_upstream_db_query_duration_seconds` 和 `llm_pulse_upstream_db_query_errors_total`
+- 若启用 snapshot，`health.snapshot.ready=true`，且 metrics 包含 `llm_pulse_snapshot_enabled`、`llm_pulse_snapshot_ready`、`llm_pulse_snapshot_lag_seconds` 和 `llm_pulse_snapshot_errors_total`

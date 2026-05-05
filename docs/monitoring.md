@@ -21,9 +21,15 @@ LLM Pulse 在 BFF 上暴露 Prometheus 文本格式指标：
    - `llm_pulse_polling_last_timestamp_seconds`：最近一次 PostgreSQL 查询尝试的 Unix 秒级时间戳；服务尚未产生查询时间时可能暂时没有样本。
    - `llm_pulse_poll_duration_seconds`：BFF 刷新编排耗时直方图。
    - `llm_pulse_aggregation_duration_seconds`：聚合逻辑耗时直方图。
-   - `llm_pulse_upstream_db_query_duration_seconds`：上游 PostgreSQL 查询耗时直方图。
-   - `llm_pulse_upstream_db_query_errors_total`：上游 PostgreSQL 查询失败总数。
-   - `llm_pulse_upstream_db_reachable`：上游 PostgreSQL 当前是否可达，`1` 表示可达，`0` 表示降级。
+    - `llm_pulse_upstream_db_query_duration_seconds`：上游 PostgreSQL 查询耗时直方图。
+    - `llm_pulse_upstream_db_query_errors_total`：上游 PostgreSQL 查询失败总数。
+    - `llm_pulse_upstream_db_reachable`：上游 PostgreSQL 当前是否可达，`1` 表示可达，`0` 表示降级。
+    - `llm_pulse_snapshot_enabled`：本地 SQLite snapshot 主路径是否启用。
+    - `llm_pulse_snapshot_ready`：SQLite snapshot 是否完成 bootstrap 并可供 `/status/api/pulse` 读取。
+    - `llm_pulse_snapshot_refresh_duration_seconds`：snapshot 增量刷新耗时直方图。
+    - `llm_pulse_snapshot_lag_seconds`：snapshot watermark 相对当前时间的滞后秒数。
+    - `llm_pulse_snapshot_processed_logs`：当前 `processed_logs` 去重表保留的行数。
+    - `llm_pulse_snapshot_errors_total{stage=...}`：snapshot open/bootstrap/refresh 失败总数。
 
 人工检查时可以先从本机访问：
 
@@ -177,6 +183,40 @@ groups:
 ```
 
 如果服务刚启动且尚未产生查询状态，该指标可能暂时没有样本。首次接入时可以先观察一段时间，再决定是否为缺失样本单独配置告警。
+
+### SQLite snapshot 滞后过久
+
+当 `PULSE_SNAPSHOT_ENABLED=true` 时，steady-state `/status/api/pulse` 应优先从本地 SQLite snapshot 读取；若 `llm_pulse_snapshot_lag_seconds` 长时间偏高，说明 snapshot refresh 没有跟上、bootstrap 未完成或上游回查持续失败。
+
+```yaml
+groups:
+  - name: llm-pulse
+    rules:
+      - alert: LLMPulseSnapshotLagHigh
+        expr: llm_pulse_snapshot_enabled == 1 and llm_pulse_snapshot_lag_seconds > 300
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse SQLite snapshot 滞后过久
+          description: snapshot covered-until watermark 落后当前时间超过 5 分钟。请检查 bootstrap/refresh 日志、upstream 日志写入延迟和 processed_logs 去重窗口。
+```
+
+### SQLite snapshot 错误增加
+
+```yaml
+groups:
+  - name: llm-pulse
+    rules:
+      - alert: LLMPulseSnapshotErrors
+        expr: increase(llm_pulse_snapshot_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse SQLite snapshot 错误增加
+          description: 最近 5 分钟内 snapshot open/bootstrap/refresh 错误计数增加。请检查 /status/api/health 中的 snapshot 字段和服务日志。
+```
 
 ## Alertmanager 使用建议
 

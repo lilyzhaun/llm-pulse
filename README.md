@@ -12,7 +12,7 @@ LLM Pulse 是一个隐私保护优先的模型可用性仪表盘，用于从 `ne
 
 本仓库使用 npm workspaces：
 
-- `apps/server`：Express BFF，使用 `pg` 连接池直读 `new-api` PostgreSQL `logs` 表，并仅保留在 `abilities` 表中存在 `enabled=true` 记录的模型，按请求窗口聚合状态并提供 REST API。服务端只维护轻量内存快照。
+- `apps/server`：Express BFF，使用 `pg` 连接池直读 `new-api` PostgreSQL `logs` 表，并仅保留在 `abilities` 表中存在 `enabled=true` 记录的模型，按请求窗口聚合状态并提供 REST API。服务端默认仍可直接查询 PostgreSQL，同时支持可选的本地 SQLite 增量快照路径。
 - `apps/frontend`：Vite + React 前端仪表盘，构建 base path 为 `/status/`。
 - `packages/shared`：共享类型包，维护前端聚合可用性响应类型和 additive 扩展字段。
 
@@ -25,7 +25,7 @@ LLM Pulse 是一个隐私保护优先的模型可用性仪表盘，用于从 `ne
 - 可访问 `new-api` PostgreSQL 的网络路径
 - PostgreSQL 只读连接串，配置在 `DATABASE_URL`
 
-服务端运行时通过 `pg` 查询上游数据库，不需要本地状态文件。
+服务端运行时通过 `pg` 查询上游数据库；当启用 `PULSE_SNAPSHOT_ENABLED=true` 时，会在 `apps/server/data/pulse-snapshot.sqlite` 维护本地 SQLite 增量快照，用于缩小 steady-state 刷新查询范围并降低 `/status/api/pulse` 的延迟。
 
 ## Installation
 
@@ -57,6 +57,10 @@ PULSE_QUERY_TIMEOUT_MS=5000
 PULSE_DB_POOL_MAX=5
 PULSE_DB_IDLE_TIMEOUT_MS=30000
 PULSE_DB_CONN_TIMEOUT_MS=2000
+PULSE_SNAPSHOT_ENABLED=false
+PULSE_SNAPSHOT_PATH=apps/server/data/pulse-snapshot.sqlite
+PULSE_RECONCILE_SECONDS=120
+PULSE_BOOTSTRAP_BATCH_SIZE=1000
 ```
 
 配置说明：
@@ -72,6 +76,10 @@ PULSE_DB_CONN_TIMEOUT_MS=2000
 | `PULSE_DB_POOL_MAX` | PostgreSQL 连接池最大连接数。 |
 | `PULSE_DB_IDLE_TIMEOUT_MS` | 连接池空闲连接释放时间。 |
 | `PULSE_DB_CONN_TIMEOUT_MS` | PostgreSQL 建连超时。 |
+| `PULSE_SNAPSHOT_ENABLED` | 是否启用本地 SQLite 增量快照主路径。默认 `false`，关闭时继续走直接 PostgreSQL 聚合。 |
+| `PULSE_SNAPSHOT_PATH` | SQLite 快照文件路径。默认解析为 `apps/server/data/pulse-snapshot.sqlite`。 |
+| `PULSE_RECONCILE_SECONDS` | 增量刷新回查窗口秒数。默认 `120`，用于吸收同秒写入和短时间迟到日志。 |
+| `PULSE_BOOTSTRAP_BATCH_SIZE` | bootstrap / reconcile 游标分页批大小。默认 `1000`。 |
 
 安全提醒：不要提交真实 `DATABASE_URL`、生产 `.env`、原始用户日志或数据库排障输出。生产环境建议通过 systemd、容器平台或密钥管理系统注入 `DATABASE_URL`、`BFF_BIND_HOST`、`PORT` 或 `BFF_PORT` 等变量，并把环境文件权限限制为仅服务运行用户可读。非容器生产部署建议保留 `BFF_BIND_HOST=127.0.0.1`，由 Nginx 从本机反向代理访问；只有容器内端口发布需要使用 `0.0.0.0`。
 
@@ -173,11 +181,12 @@ LLM Pulse 采用 BFF 架构：
 
 1. `apps/server` 使用 `DATABASE_URL` 建立 `pg` 连接池，直读上游 `new-api` PostgreSQL `logs` 表，并用 `abilities.enabled=true` 过滤可见模型。
 2. 聚合服务按配置窗口查询模型、渠道和心跳桶数据，并在内存中保留最近一次成功快照。
-3. `/status/api/pulse` 返回脱敏聚合结果，包含 `dataSource` 和模型级 `tokens`、`cost`、`rpm`、`tpm`；`summary` 与 `models` 只统计通过 `abilities.enabled=true` 过滤后的模型集合。
-4. PostgreSQL 不可达时，BFF 不把连接错误作为 5xx 直接暴露给前端，而是返回内存快照或空快照，并通过 `dataSource.kind` 标记数据来源。
-5. Express 暴露 `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics`。
-6. BFF 默认绑定 `127.0.0.1`，生产由本机 Nginx 反代访问；Docker Compose 在容器内显式使用 `BFF_BIND_HOST=0.0.0.0` 以配合端口发布。
-7. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
+3. 启用 `PULSE_SNAPSHOT_ENABLED=true` 后，BFF 会优先从本地 SQLite snapshot 读取 `/status/api/pulse`；后台只回查最近一个小窗口的原始日志，并使用 `processed_logs` 去重。
+4. `/status/api/pulse` 返回脱敏聚合结果，包含 `dataSource` 和模型级 `tokens`、`cost`、`rpm`、`tpm`；`summary` 与 `models` 只统计通过 `abilities.enabled=true` 过滤后的模型集合。
+5. PostgreSQL 不可达时，BFF 不把连接错误作为 5xx 直接暴露给前端，而是返回内存快照或空快照，并通过 `dataSource.kind` 标记数据来源。
+6. Express 暴露 `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics`。
+7. BFF 默认绑定 `127.0.0.1`，生产由本机 Nginx 反代访问；Docker Compose 在容器内显式使用 `BFF_BIND_HOST=0.0.0.0` 以配合端口发布。
+8. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
 
 共享类型位于 `packages/shared`，用于降低前后端 API 结构漂移风险。
 
