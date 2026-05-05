@@ -236,4 +236,154 @@ describe("buildSnapshotAvailabilityResponse", () => {
     );
     expect(response.heartbeat.bucketCount).toBe(4);
   });
+
+  it("keeps model and channel tie-breaker sorting stable", () => {
+    const models = new Map<string, SnapshotData["models"] extends Map<string, infer T> ? T[number][] : never>();
+    const channels = new Map<string, SnapshotData["channels"] extends Map<string, infer T> ? T[number][] : never>();
+
+    const sameLastSeen = 1_704_067_300;
+    models.set("model-z", [
+      {
+        modelName: "model-z",
+        bucketStart: 1_704_067_260,
+        successCount: 1,
+        errorCount: 1,
+        totalCount: 2,
+        latencySumSeconds: 2,
+        latencySamples: 2,
+        promptTokens: 20,
+        cacheTokens: 2,
+        completionTokens: 5,
+        quotaSum: 1,
+        lastSeenAt: sameLastSeen,
+      },
+    ]);
+    models.set("model-a", [
+      {
+        modelName: "model-a",
+        bucketStart: 1_704_067_260,
+        successCount: 2,
+        errorCount: 0,
+        totalCount: 2,
+        latencySumSeconds: 2,
+        latencySamples: 2,
+        promptTokens: 20,
+        cacheTokens: 2,
+        completionTokens: 5,
+        quotaSum: 1,
+        lastSeenAt: sameLastSeen,
+      },
+    ]);
+
+    channels.set("model-z", [
+      {
+        modelName: "model-z",
+        channelId: 2,
+        channelName: "zeta",
+        bucketStart: 1_704_067_260,
+        successCount: 1,
+        errorCount: 0,
+        totalCount: 2,
+        latencySumSeconds: 1,
+        latencySamples: 1,
+        promptTokens: 20,
+        cacheTokens: 2,
+        completionTokens: 5,
+        quotaSum: 1,
+        lastSeenAt: sameLastSeen,
+      },
+      {
+        modelName: "model-z",
+        channelId: 1,
+        channelName: "alpha",
+        bucketStart: 1_704_067_260,
+        successCount: 1,
+        errorCount: 0,
+        totalCount: 2,
+        latencySumSeconds: 1,
+        latencySamples: 1,
+        promptTokens: 20,
+        cacheTokens: 2,
+        completionTokens: 5,
+        quotaSum: 1,
+        lastSeenAt: sameLastSeen,
+      },
+    ]);
+
+    const response = buildSnapshotAvailabilityResponse(
+      {
+        bootstrapCompletedAt: "2026-05-06T00:00:00.000Z",
+        coveredUntilCreatedAt: 1_704_067_500,
+        coveredUntilId: 99,
+        lastRefreshAt: "2026-05-06T00:01:00.000Z",
+        lastSuccessAt: "2026-05-06T00:01:00.000Z",
+        enabledModels: new Set(["model-a", "model-z"]),
+        models,
+        channels,
+        processedLogCount: 3,
+      },
+      {
+        toEpochSeconds: 1_704_067_500,
+        generatedAt: "2024-01-01T00:05:00.000Z",
+      },
+      {
+        kind: "upstream-postgres",
+        lastQueryAt: "2024-01-01T00:05:00.000Z",
+        lastQueryDurationMs: 12,
+        lastErrorMessage: null,
+      },
+    );
+
+    expect(response.models.map((model) => model.modelName)).toEqual([
+      "model-z",
+      "model-a",
+    ]);
+    expect(response.models[0]?.channels.map((channel) => channel.channelName)).toEqual([
+      "alpha",
+      "zeta",
+    ]);
+  });
+
+  it("caps response-level heartbeat bucket count to latest 60 observed buckets", () => {
+    const modelBuckets = Array.from({ length: 70 }, (_, index) => ({
+      modelName: "model-cap",
+      bucketStart: 1_700_000_000 + index * 60,
+      successCount: 1,
+      errorCount: 0,
+      totalCount: 1,
+      latencySumSeconds: 1,
+      latencySamples: 1,
+      promptTokens: 1,
+      cacheTokens: 0,
+      completionTokens: 1,
+      quotaSum: 1,
+      lastSeenAt: 1_700_000_000 + index * 60,
+    }));
+
+    const response = buildSnapshotAvailabilityResponse(
+      {
+        bootstrapCompletedAt: "2026-05-06T00:00:00.000Z",
+        coveredUntilCreatedAt: 1_704_067_500,
+        coveredUntilId: 99,
+        lastRefreshAt: "2026-05-06T00:01:00.000Z",
+        lastSuccessAt: "2026-05-06T00:01:00.000Z",
+        enabledModels: new Set(["model-cap"]),
+        models: new Map([["model-cap", modelBuckets]]),
+        channels: new Map(),
+        processedLogCount: 70,
+      },
+      {
+        toEpochSeconds: 1_704_067_500,
+        generatedAt: "2024-01-01T00:05:00.000Z",
+      },
+      {
+        kind: "upstream-postgres",
+        lastQueryAt: "2024-01-01T00:05:00.000Z",
+        lastQueryDurationMs: 12,
+        lastErrorMessage: null,
+      },
+    );
+
+    expect(response.heartbeat.bucketCount).toBe(60);
+  });
 });
