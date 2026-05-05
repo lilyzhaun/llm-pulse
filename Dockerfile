@@ -34,6 +34,8 @@ RUN apk add --no-cache tini
 
 WORKDIR /app
 
+RUN mkdir -p /app/apps/server/data && chown -R llm-pulse:llm-pulse /app
+
 # 仅复制运行时需要的构建产物
 COPY --from=builder /build/node_modules/ node_modules/
 COPY --from=builder /build/packages/shared/dist/ packages/shared/dist/
@@ -53,6 +55,8 @@ LABEL org.opencontainers.image.title="llm-pulse" \
 ENV NODE_ENV=production
 ENV PORT=43130
 ENV BFF_BIND_HOST=0.0.0.0
+ENV PULSE_SNAPSHOT_ENABLED=false
+ENV PULSE_SNAPSHOT_PATH=apps/server/data/pulse-snapshot.sqlite
 
 EXPOSE 43130
 

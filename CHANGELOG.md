@@ -6,10 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 
 ## [Unreleased]
 
+### Added
+
+- Added an opt-in SQLite incremental snapshot path for the server, including snapshot schema, bootstrap/reconcile logic, processed-log deduplication, and snapshot-backed pulse response reconstruction.
+- Added snapshot status fields to `/status/api/health` and snapshot-specific Prometheus metrics for enablement, readiness, lag, processed log count, and staged errors.
+
+### Fixed
+
+- Deduplicated enabled model names during snapshot bootstrap so duplicate `abilities` rows no longer break the `enabled_models` primary key constraint.
+
 ### Changed
 
 - Updated project documentation for the upstream PostgreSQL architecture: the BFF now reads the `new-api` `logs` table through `DATABASE_URL`, keeps only a lightweight in-memory snapshot, and documents degraded fallback behavior when PostgreSQL is unavailable.
 - Documented additive API fields for `dataSource` and model-level `tokens`, `cost`, `rpm`, and `tpm`.
+- Updated deployment, monitoring, API, and runbook documentation for SQLite snapshot rollout, rebuild, rollback, and observability.
 
 ### Removed
 

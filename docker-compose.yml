@@ -14,6 +14,15 @@ services:
       PULSE_DB_POOL_MAX: ${PULSE_DB_POOL_MAX:-5}
       PULSE_DB_IDLE_TIMEOUT_MS: ${PULSE_DB_IDLE_TIMEOUT_MS:-30000}
       PULSE_DB_CONN_TIMEOUT_MS: ${PULSE_DB_CONN_TIMEOUT_MS:-2000}
+      PULSE_SNAPSHOT_ENABLED: ${PULSE_SNAPSHOT_ENABLED:-false}
+      PULSE_SNAPSHOT_PATH: ${PULSE_SNAPSHOT_PATH:-apps/server/data/pulse-snapshot.sqlite}
+      PULSE_RECONCILE_SECONDS: ${PULSE_RECONCILE_SECONDS:-120}
+      PULSE_BOOTSTRAP_BATCH_SIZE: ${PULSE_BOOTSTRAP_BATCH_SIZE:-1000}
     ports:
       - "127.0.0.1:43130:43130"
+    volumes:
+      - llm-pulse-data:/app/apps/server/data
     restart: unless-stopped
+
+volumes:
+  llm-pulse-data:

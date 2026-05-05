@@ -83,17 +83,17 @@ const loadEnabledModels = async (
   pgClient: SnapshotQueryClient,
 ): Promise<string[]> => {
   const query = selectEnabledModelsQuery();
-	const result = await pgClient.query<EnabledModelRow>(
-		query.text,
-		query.values,
-	);
-	return [
-		...new Set(
-			result.rows
-				.map((row) => row.model?.trim() ?? "")
-				.filter((model): model is string => model.length > 0),
-		),
-	];
+  const result = await pgClient.query<EnabledModelRow>(
+    query.text,
+    query.values,
+  );
+  return [
+    ...new Set(
+      result.rows
+        .map((row) => row.model?.trim() ?? "")
+        .filter((model): model is string => model.length > 0),
+    ),
+  ];
 };
 
 const setRefreshMeta = (
