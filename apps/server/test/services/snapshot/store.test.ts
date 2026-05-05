@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { randomUUID } from "node:crypto";
@@ -271,6 +271,52 @@ describe("SnapshotStore", () => {
     } finally {
       store.close();
       rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("rolls back processed logs and buckets when transaction callback throws", () => {
+    const { dir, filePath } = createTempDbPath();
+    const store = new SnapshotStore(filePath);
+
+    try {
+      store.open();
+
+      expect(() =>
+        store.runInTransaction(() => {
+          store.applyLogDelta(createLog({ id: 100 }));
+          throw new Error("force rollback");
+        }),
+      ).toThrow("force rollback");
+
+      expect(store.processedLogCount()).toBe(0);
+      const snapshot = store.readSnapshot();
+      expect(snapshot.models.size).toBe(0);
+      expect(snapshot.channels.size).toBe(0);
+    } finally {
+      store.close();
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("creates nested parent directories when opening a new sqlite path", () => {
+    const rootDir = mkdtempSync(join(tmpdir(), "llm-pulse-snapshot-nested-"));
+    const nestedFilePath = join(
+      rootDir,
+      "a",
+      "b",
+      "c",
+      "d",
+      `${randomUUID()}.sqlite`,
+    );
+    const store = new SnapshotStore(nestedFilePath);
+
+    try {
+      store.open();
+      expect(existsSync(nestedFilePath)).toBe(true);
+      expect(statSync(nestedFilePath).isFile()).toBe(true);
+    } finally {
+      store.close();
+      rmSync(rootDir, { recursive: true, force: true });
     }
   });
 
