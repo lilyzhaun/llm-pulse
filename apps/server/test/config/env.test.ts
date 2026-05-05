@@ -27,11 +27,24 @@ describe("env config", () => {
     vi.resetModules();
   });
 
-  it("falls back to default values for PORT, BFF_PORT, and NODE_ENV", async () => {
+  it("falls back to default values for PORT, BFF_PORT, BFF_BIND_HOST, and NODE_ENV", async () => {
     const { env } = await loadEnv();
 
     expect(env.port).toBe(3001);
+    expect(env.bindHost).toBe("127.0.0.1");
     expect(env.nodeEnv).toBe("development");
+  });
+
+  it("parses BFF_BIND_HOST values", async () => {
+    const { env } = await loadEnv({ BFF_BIND_HOST: "0.0.0.0" });
+
+    expect(env.bindHost).toBe("0.0.0.0");
+  });
+
+  it("falls back to loopback when BFF_BIND_HOST is blank", async () => {
+    const { env } = await loadEnv({ BFF_BIND_HOST: "   " });
+
+    expect(env.bindHost).toBe("127.0.0.1");
   });
 
   it("parses valid PORT and BFF_PORT values", async () => {

@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { isProduction } from "../config/env.js";
 import { aggregationService } from "../services/aggregationService.js";
 
 export const healthRouter = Router();
@@ -7,7 +6,7 @@ export const healthRouter = Router();
 const safePollingStatus = (
   pollingStatus: ReturnType<typeof aggregationService.getPollingStatus>,
 ) => {
-  if (!pollingStatus || !isProduction || !pollingStatus.lastErrorMessage) {
+  if (!pollingStatus || !pollingStatus.lastErrorMessage) {
     return pollingStatus;
   }
 

@@ -14,6 +14,8 @@
   "dependencies": {
     "@llm-pulse/shared": "file:../../packages/shared",
     "express": "^4.18.3",
+    "express-rate-limit": "^8.5.0",
+    "helmet": "^8.1.0",
     "pg": "^8.13.1",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3"

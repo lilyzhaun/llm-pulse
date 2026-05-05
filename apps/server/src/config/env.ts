@@ -92,6 +92,12 @@ if (nodeEnv !== "production") {
 
 const port = parsePort(process.env.PORT ?? process.env.BFF_PORT, 3001);
 
+const parseBindHost = (value: string | undefined): string => {
+  const host = value?.trim();
+
+  return host || "127.0.0.1";
+};
+
 const parseRequiredString = (
   name: string,
   value: string | undefined,
@@ -106,6 +112,7 @@ const parseRequiredString = (
 const currentEnv = {
   nodeEnv,
   port,
+  bindHost: parseBindHost(process.env.BFF_BIND_HOST),
   logLevel: process.env.LOG_LEVEL,
   databaseUrl: parseRequiredString("DATABASE_URL", process.env.DATABASE_URL),
   refreshIntervalMs: parsePositiveInteger(

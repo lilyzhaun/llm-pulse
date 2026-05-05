@@ -35,11 +35,12 @@ describe("health routes", () => {
     expect(response.body.uptimeSeconds).toEqual(expect.any(Number));
   });
 
-  it("returns degraded upstream-db status when the latest query failed", async () => {
+  it("returns degraded upstream-db status with sanitized polling error", async () => {
     mockAggregationService.getPollingStatus.mockReturnValue({
       lastQueryAt: "2024-01-01T00:05:00.000Z",
       lastQuerySucceeded: false,
-      lastErrorMessage: "Upstream PostgreSQL query failed",
+      lastErrorMessage:
+        "password authentication failed for host=db.internal.local",
       lastQueryDurationMs: 25,
       lastPollAt: "2024-01-01T00:05:00.000Z",
       lastPollSucceeded: false,
@@ -54,7 +55,7 @@ describe("health routes", () => {
       polling: {
         lastQueryAt: "2024-01-01T00:05:00.000Z",
         lastQuerySucceeded: false,
-        lastErrorMessage: "Upstream PostgreSQL query failed",
+        lastErrorMessage: "Polling failed; see server logs",
         lastQueryDurationMs: 25,
         lastPollAt: "2024-01-01T00:05:00.000Z",
         lastPollSucceeded: false,

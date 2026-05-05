@@ -39,15 +39,18 @@ const refreshScheduler = startRefreshScheduler({
   service: aggregationService,
 });
 
-const server = app.listen(env.port, () => {
-  logger.info({ port: env.port }, "llm-pulse BFF listening");
+const server = app.listen(env.port, env.bindHost, () => {
+  logger.info(
+    { host: env.bindHost, port: env.port },
+    "llm-pulse BFF listening",
+  );
 }) as unknown as HttpServer;
 
 server.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {
     logger.error(
-      { port: env.port },
-      "Failed to start llm-pulse BFF: port is already in use",
+      { host: env.bindHost, port: env.port },
+      "Failed to start llm-pulse BFF: address is already in use",
     );
     process.exit(1);
   }
