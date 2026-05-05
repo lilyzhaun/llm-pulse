@@ -2,15 +2,57 @@ import type { Server as HttpServer } from "node:http";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
+import { incrementSnapshotErrors } from "./routes/metrics.js";
 import { aggregationService } from "./services/aggregationService.js";
+import { bootstrapSnapshot } from "./services/snapshot/refreshService.js";
+import { SnapshotStore } from "./services/snapshot/store.js";
 import { startRefreshScheduler } from "./services/refreshScheduler.js";
 import {
   closeUpstreamPool,
   pingUpstreamDb,
   scrubPgError,
+  upstreamPool,
 } from "./services/upstreamDb/pool.js";
 
 const app = createApp();
+let snapshotStore: SnapshotStore | null = null;
+
+if (env.snapshotEnabled) {
+  try {
+    snapshotStore = new SnapshotStore(env.snapshotPath);
+    snapshotStore.open();
+    aggregationService.configureSnapshotStore(snapshotStore);
+
+    if (!snapshotStore.isReady()) {
+      logger.info({ path: env.snapshotPath }, "Starting snapshot bootstrap");
+      void bootstrapSnapshot({
+        store: snapshotStore,
+        pgClient: upstreamPool,
+        logger,
+        reconcileSeconds: env.reconcileSeconds,
+        bootstrapBatchSize: env.bootstrapBatchSize,
+      })
+        .then(() => {
+          logger.info("Snapshot bootstrap finished successfully");
+        })
+        .catch((error) => {
+          incrementSnapshotErrors("bootstrap");
+          aggregationService.disableSnapshotForProcess();
+          logger.warn(
+            { error: scrubPgError(error) },
+            "Snapshot bootstrap failed; snapshot path disabled for this process",
+          );
+        });
+    }
+  } catch (error) {
+    incrementSnapshotErrors("open");
+    aggregationService.disableSnapshotForProcess();
+    logger.warn(
+      { error: scrubPgError(error) },
+      "Failed to open snapshot store; snapshot path disabled for this process",
+    );
+  }
+}
 
 void pingUpstreamDb().then(async (reachable) => {
   if (!reachable) {
@@ -64,6 +106,7 @@ const shutdown = (signal: NodeJS.Signals) => {
   refreshScheduler.stop();
   server.close((error) => {
     void (async () => {
+      snapshotStore?.close();
       await closeUpstreamPool();
 
       if (error) {

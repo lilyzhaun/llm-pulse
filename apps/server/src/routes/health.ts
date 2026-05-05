@@ -28,6 +28,7 @@ const upstreamDbStatus = (
 
 healthRouter.get("/", (_request, response) => {
   const pollingStatus = aggregationService.getPollingStatus();
+  const snapshot = aggregationService.getSnapshotStatus();
   const upstreamDb = upstreamDbStatus(pollingStatus);
   const healthStatus = upstreamDb.reachable ? "ok" : "degraded";
 
@@ -37,5 +38,6 @@ healthRouter.get("/", (_request, response) => {
     uptimeSeconds: Math.round(process.uptime()),
     polling: safePollingStatus(pollingStatus),
     upstreamDb,
+    snapshot,
   });
 });

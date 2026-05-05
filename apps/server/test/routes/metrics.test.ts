@@ -30,6 +30,14 @@ describe("metrics routes", () => {
     );
     expect(response.text).toContain("llm_pulse_upstream_db_query_errors_total");
     expect(response.text).toContain("llm_pulse_upstream_db_reachable");
+    expect(response.text).toContain("llm_pulse_snapshot_enabled");
+    expect(response.text).toContain("llm_pulse_snapshot_ready");
+    expect(response.text).toContain(
+      "llm_pulse_snapshot_refresh_duration_seconds",
+    );
+    expect(response.text).toContain("llm_pulse_snapshot_lag_seconds");
+    expect(response.text).toContain("llm_pulse_snapshot_processed_logs");
+    expect(response.text).toContain("llm_pulse_snapshot_errors_total");
     expect(response.text).not.toContain(
       "llm_pulse_upstream_request_errors_total",
     );

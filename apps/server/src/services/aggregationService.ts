@@ -1,7 +1,6 @@
 import type {
   AvailabilityResponse,
   ChannelAvailability,
-  HeartbeatBucket,
   ModelAvailability,
   NewApiLogItem,
 } from "@llm-pulse/shared";
@@ -12,12 +11,20 @@ import {
 } from "../config/constants.js";
 import { logger } from "../lib/logger.js";
 import {
+  incrementSnapshotErrors,
   incrementUpstreamDbQueryErrors,
   observeAggregationDurationSeconds,
+  observeSnapshotRefreshDurationSeconds,
   observeUpstreamDbQueryDurationSeconds,
 } from "../routes/metrics.js";
-import { buildHeartbeatSummary } from "./aggregation/heartbeat.js";
-import { statusFromCounts, statusOrder } from "./aggregation/status.js";
+import {
+  buildSnapshotAvailabilityResponse,
+  type ExtendedAvailabilityResponse,
+  type LocalAvailabilityDataSource,
+  type QueryWindow,
+} from "./snapshot/responseBuilder.js";
+import { refreshIncremental } from "./snapshot/refreshService.js";
+import type { SnapshotStore } from "./snapshot/store.js";
 import {
   type ChannelAggregate,
   type ModelAggregate,
@@ -27,6 +34,9 @@ import {
   getModelAggregates,
   scrubPgError,
 } from "./upstreamDb/index.js";
+import { upstreamPool } from "./upstreamDb/pool.js";
+import { buildHeartbeatSummary } from "./aggregation/heartbeat.js";
+import { statusFromCounts, statusOrder } from "./aggregation/status.js";
 
 const nowIso = () => new Date().toISOString();
 const elapsedSecondsSince = (startedAt: bigint) =>
@@ -45,45 +55,19 @@ interface QueryStatusSnapshot {
   lastPollSucceeded: boolean | null;
 }
 
+interface SnapshotStatus {
+  enabled: boolean;
+  ready: boolean;
+  bootstrapCompletedAt: string | null;
+  lastRefreshAt: string | null;
+  coveredUntil: number | null;
+  lagSeconds: number | null;
+  lastRefreshSucceeded: boolean | null;
+  processedLogCount: number | null;
+}
+
 interface StateCursorSnapshot {
   lastSeenTimestamp: number | null;
-}
-
-interface QueryWindow {
-  toEpochSeconds: number;
-  generatedAt: string;
-}
-
-interface LocalAvailabilityDataSource {
-  kind: "upstream-postgres" | "memory-snapshot" | "empty";
-  lastQueryAt: string | null;
-  lastQueryDurationMs: number | null;
-  lastErrorMessage: string | null;
-}
-
-interface ExtendedModelAvailability extends ModelAvailability {
-  tokens: {
-    input: number;
-    cacheInput: number;
-    output: number;
-    total: number;
-  };
-  cost: {
-    quota: number;
-  };
-  rpm: {
-    average: number;
-    peak: number;
-  };
-  tpm: {
-    average: number;
-    peak: number;
-  };
-}
-
-interface ExtendedAvailabilityResponse extends AvailabilityResponse {
-  dataSource: LocalAvailabilityDataSource;
-  models: ExtendedModelAvailability[];
 }
 
 export class AggregationService {
@@ -93,6 +77,17 @@ export class AggregationService {
   private lastErrorMessage: string | null = null;
   private lastQueryDurationMs: number | null = null;
   private inflightRefresh: Promise<AvailabilityResponse> | null = null;
+  private snapshotStore: SnapshotStore | null = null;
+  private snapshotEnabledForProcess = env.snapshotEnabled;
+  private snapshotLastRefreshSucceeded: boolean | null = null;
+
+  configureSnapshotStore(store: SnapshotStore | null): void {
+    this.snapshotStore = store;
+  }
+
+  disableSnapshotForProcess(): void {
+    this.snapshotEnabledForProcess = false;
+  }
 
   async restoreFromState(_state: unknown): Promise<void> {
     this.lastSnapshot = null;
@@ -139,6 +134,41 @@ export class AggregationService {
     };
   }
 
+  getSnapshotStatus(): SnapshotStatus {
+    if (!this.snapshotEnabledForProcess || !this.snapshotStore) {
+      return {
+        enabled: false,
+        ready: false,
+        bootstrapCompletedAt: null,
+        lastRefreshAt: null,
+        coveredUntil: null,
+        lagSeconds: null,
+        lastRefreshSucceeded: this.snapshotLastRefreshSucceeded,
+        processedLogCount: null,
+      };
+    }
+
+    const snapshot = this.snapshotStore.readSnapshot();
+    const lagSeconds =
+      snapshot.coveredUntilCreatedAt === null
+        ? null
+        : Math.max(
+            0,
+            Math.floor(Date.now() / 1000) - snapshot.coveredUntilCreatedAt,
+          );
+
+    return {
+      enabled: true,
+      ready: this.snapshotStore.isReady(),
+      bootstrapCompletedAt: snapshot.bootstrapCompletedAt,
+      lastRefreshAt: snapshot.lastRefreshAt,
+      coveredUntil: snapshot.coveredUntilCreatedAt,
+      lagSeconds,
+      lastRefreshSucceeded: this.snapshotLastRefreshSucceeded,
+      processedLogCount: snapshot.processedLogCount,
+    };
+  }
+
   async getAggregatedPulse(): Promise<AvailabilityResponse> {
     if (this.lastSnapshot) {
       return this.lastSnapshot;
@@ -173,32 +203,15 @@ export class AggregationService {
     const window = this.buildQueryWindow();
 
     try {
-      const [models, channels, heartbeatBuckets] = await Promise.all([
-        getModelAggregates(window.toEpochSeconds),
-        getChannelAggregates(window.toEpochSeconds),
-        getHeartbeatBuckets(window.toEpochSeconds),
-      ]);
-      const durationMs = elapsedMsSince(queryStartedAt);
-      observeUpstreamDbQueryDurationSeconds(durationMs / 1000);
-      const response = this.buildAvailabilityResponse(
-        models,
-        channels,
-        heartbeatBuckets,
-        window,
-        {
-          kind: "upstream-postgres",
-          lastQueryAt: window.generatedAt,
-          lastQueryDurationMs: durationMs,
-          lastErrorMessage: null,
-        },
-      );
+      const response =
+        this.snapshotEnabledForProcess && this.snapshotStore?.isReady()
+          ? await this.runSnapshotRefresh(window, queryStartedAt)
+          : await this.runUpstreamRefresh(window, queryStartedAt);
 
       this.lastSnapshot = response;
       this.lastQueryAt = window.generatedAt;
       this.lastQuerySucceeded = true;
       this.lastErrorMessage = null;
-      this.lastQueryDurationMs = durationMs;
-
       return response;
     } catch (error) {
       const durationMs = elapsedMsSince(queryStartedAt);
@@ -217,12 +230,77 @@ export class AggregationService {
     }
   }
 
+  private async runSnapshotRefresh(
+    window: QueryWindow,
+    queryStartedAt: bigint,
+  ): Promise<ExtendedAvailabilityResponse> {
+    if (!this.snapshotStore) {
+      throw new Error("Snapshot store is not configured");
+    }
+
+    try {
+      const result = await refreshIncremental({
+        store: this.snapshotStore,
+        pgClient: upstreamPool,
+        logger,
+        reconcileSeconds: env.reconcileSeconds,
+        bootstrapBatchSize: env.bootstrapBatchSize,
+      });
+      const durationMs = elapsedMsSince(queryStartedAt);
+      observeSnapshotRefreshDurationSeconds(durationMs / 1000);
+      this.lastQueryDurationMs = durationMs;
+      this.snapshotLastRefreshSucceeded = true;
+
+      return buildSnapshotAvailabilityResponse(
+        this.snapshotStore.readSnapshot(),
+        window,
+        {
+          kind: "upstream-postgres",
+          lastQueryAt: window.generatedAt,
+          lastQueryDurationMs: durationMs,
+          lastErrorMessage: null,
+        },
+      );
+    } catch (error) {
+      incrementSnapshotErrors("refresh");
+      this.snapshotLastRefreshSucceeded = false;
+      logger.warn(
+        { error: scrubPgError(error) },
+        "Snapshot refresh failed; serving fallback response",
+      );
+      throw error;
+    }
+  }
+
+  private async runUpstreamRefresh(
+    window: QueryWindow,
+    queryStartedAt: bigint,
+  ): Promise<ExtendedAvailabilityResponse> {
+    const [models, channels, heartbeatBuckets] = await Promise.all([
+      getModelAggregates(window.toEpochSeconds),
+      getChannelAggregates(window.toEpochSeconds),
+      getHeartbeatBuckets(window.toEpochSeconds),
+    ]);
+    const durationMs = elapsedMsSince(queryStartedAt);
+    observeUpstreamDbQueryDurationSeconds(durationMs / 1000);
+    this.lastQueryDurationMs = durationMs;
+
+    return this.buildAvailabilityResponse(
+      models,
+      channels,
+      heartbeatBuckets,
+      window,
+      {
+        kind: "upstream-postgres",
+        lastQueryAt: window.generatedAt,
+        lastQueryDurationMs: durationMs,
+        lastErrorMessage: null,
+      },
+    );
+  }
+
   private buildQueryWindow(): QueryWindow {
     const toEpochSeconds = Math.floor(Date.now() / 1000);
-    const fromEpochSeconds = Math.max(
-      0,
-      toEpochSeconds - env.availabilityWindowSeconds,
-    );
 
     return {
       toEpochSeconds,
@@ -275,8 +353,8 @@ export class AggregationService {
   private buildModelAvailability(
     model: ModelAggregate,
     channels: ChannelAvailability[],
-    beats: HeartbeatBucket[],
-  ): ExtendedModelAvailability {
+    beats: import("@llm-pulse/shared").HeartbeatBucket[],
+  ): ExtendedAvailabilityResponse["models"][number] {
     return {
       modelName: model.modelName,
       status: statusFromCounts(model.successCount, model.errorCount),
@@ -311,7 +389,7 @@ export class AggregationService {
 
   private groupChannels(
     channelAggregates: ChannelAggregate[],
-    beatsByModel: Map<string, HeartbeatBucket[]>,
+    beatsByModel: Map<string, import("@llm-pulse/shared").HeartbeatBucket[]>,
   ): Map<string, ChannelAvailability[]> {
     const channelsByModel = new Map<string, ChannelAvailability[]>();
 
@@ -348,8 +426,11 @@ export class AggregationService {
 
   private groupHeartbeatBuckets(
     heartbeatBuckets: UpstreamHeartbeatBucket[],
-  ): Map<string, HeartbeatBucket[]> {
-    const beatsByModel = new Map<string, HeartbeatBucket[]>();
+  ): Map<string, import("@llm-pulse/shared").HeartbeatBucket[]> {
+    const beatsByModel = new Map<
+      string,
+      import("@llm-pulse/shared").HeartbeatBucket[]
+    >();
 
     for (const bucket of heartbeatBuckets) {
       const beats = beatsByModel.get(bucket.modelName) ?? [];
@@ -414,7 +495,7 @@ export class AggregationService {
   }
 
   private buildSummary(
-    models: ExtendedModelAvailability[],
+    models: ExtendedAvailabilityResponse["models"],
   ): AvailabilityResponse["summary"] {
     let availableModels = 0;
     let degradedModels = 0;

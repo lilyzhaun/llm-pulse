@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const mockAggregationService = vi.hoisted(() => ({
   getPollingStatus: vi.fn(),
+  getSnapshotStatus: vi.fn(),
 }));
 
 vi.hoisted(() => {
@@ -18,6 +19,16 @@ import { createApp } from "../../src/app.js";
 describe("health routes", () => {
   it("returns health status and core service fields", async () => {
     mockAggregationService.getPollingStatus.mockReturnValue(null);
+    mockAggregationService.getSnapshotStatus.mockReturnValue({
+      enabled: false,
+      ready: false,
+      bootstrapCompletedAt: null,
+      lastRefreshAt: null,
+      coveredUntil: null,
+      lagSeconds: null,
+      lastRefreshSucceeded: null,
+      processedLogCount: null,
+    });
 
     const response = await request(createApp())
       .get("/status/api/health")
@@ -30,6 +41,16 @@ describe("health routes", () => {
       upstreamDb: {
         reachable: true,
         lastSuccessAt: null,
+      },
+      snapshot: {
+        enabled: false,
+        ready: false,
+        bootstrapCompletedAt: null,
+        lastRefreshAt: null,
+        coveredUntil: null,
+        lagSeconds: null,
+        lastRefreshSucceeded: null,
+        processedLogCount: null,
       },
     });
     expect(response.body.uptimeSeconds).toEqual(expect.any(Number));
@@ -44,6 +65,16 @@ describe("health routes", () => {
       lastQueryDurationMs: 25,
       lastPollAt: "2024-01-01T00:05:00.000Z",
       lastPollSucceeded: false,
+    });
+    mockAggregationService.getSnapshotStatus.mockReturnValue({
+      enabled: true,
+      ready: true,
+      bootstrapCompletedAt: "2024-01-01T00:00:00.000Z",
+      lastRefreshAt: "2024-01-01T00:05:00.000Z",
+      coveredUntil: 1704067500,
+      lagSeconds: 12,
+      lastRefreshSucceeded: true,
+      processedLogCount: 2,
     });
 
     const response = await request(createApp())
@@ -75,6 +106,16 @@ describe("health routes", () => {
       lastQueryDurationMs: 12,
       lastPollAt: "2024-01-01T00:06:00.000Z",
       lastPollSucceeded: true,
+    });
+    mockAggregationService.getSnapshotStatus.mockReturnValue({
+      enabled: true,
+      ready: false,
+      bootstrapCompletedAt: null,
+      lastRefreshAt: null,
+      coveredUntil: null,
+      lagSeconds: null,
+      lastRefreshSucceeded: false,
+      processedLogCount: 0,
     });
 
     const response = await request(createApp())
