@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type {
   AvailabilityResponse,
   ModelAvailability,
@@ -175,7 +175,7 @@ describe("Dashboard", () => {
         .getByLabelText("gpt-4.1 最近 Heartbeat")
         .getAttribute("data-beat-count"),
     ).toBe("1");
-    screen.getByRole("button", { name: /gpt-4.1/i }).click();
+    fireEvent.click(screen.getByRole("button", { name: /gpt-4.1/i }));
     expect(screen.getByText("输入 tokens")).not.toBeNull();
     expect(screen.getByText("1,234 (1.2K)")).not.toBeNull();
     expect(screen.getByText("Quota")).not.toBeNull();
