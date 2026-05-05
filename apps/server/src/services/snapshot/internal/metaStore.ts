@@ -9,7 +9,9 @@ export class MetaStore {
 
   getMeta(key: string): string | null {
     const row = this.db
-      .prepare<[string], MetaRow>("SELECT value FROM snapshot_meta WHERE key = ?")
+      .prepare<[string], MetaRow>(
+        "SELECT value FROM snapshot_meta WHERE key = ?",
+      )
       .get(key);
     return row?.value ?? null;
   }

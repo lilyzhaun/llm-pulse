@@ -58,7 +58,10 @@ export class PulseResponseFactory {
         to: new Date(window.toEpochSeconds * 1000).toISOString(),
         seconds: HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
       },
-      heartbeat: this.buildResponseHeartbeat(heartbeatBuckets, window.generatedAt),
+      heartbeat: this.buildResponseHeartbeat(
+        heartbeatBuckets,
+        window.generatedAt,
+      ),
       summary: this.buildSummary(models),
       models,
     };
@@ -187,7 +190,9 @@ export class PulseResponseFactory {
     }
 
     for (const beats of beatsByModel.values()) {
-      beats.sort((left, right) => Date.parse(left.start) - Date.parse(right.start));
+      beats.sort(
+        (left, right) => Date.parse(left.start) - Date.parse(right.start),
+      );
     }
 
     return beatsByModel;
@@ -308,7 +313,10 @@ export class PulseResponseFactory {
     return totalCount === 0 ? 0 : successCount / totalCount;
   }
 
-  private compareModels(left: ModelAvailability, right: ModelAvailability): number {
+  private compareModels(
+    left: ModelAvailability,
+    right: ModelAvailability,
+  ): number {
     const rightLastSeenAt = right.lastSeenAt ? Date.parse(right.lastSeenAt) : 0;
     const leftLastSeenAt = left.lastSeenAt ? Date.parse(left.lastSeenAt) : 0;
 

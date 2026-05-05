@@ -238,8 +238,16 @@ describe("buildSnapshotAvailabilityResponse", () => {
   });
 
   it("keeps model and channel tie-breaker sorting stable", () => {
-    const models = new Map<string, SnapshotData["models"] extends Map<string, infer T> ? T[number][] : never>();
-    const channels = new Map<string, SnapshotData["channels"] extends Map<string, infer T> ? T[number][] : never>();
+    const models = new Map<
+      string,
+      SnapshotData["models"] extends Map<string, infer T> ? T[number][] : never
+    >();
+    const channels = new Map<
+      string,
+      SnapshotData["channels"] extends Map<string, infer T>
+        ? T[number][]
+        : never
+    >();
 
     const sameLastSeen = 1_704_067_300;
     models.set("model-z", [
@@ -338,10 +346,9 @@ describe("buildSnapshotAvailabilityResponse", () => {
       "model-z",
       "model-a",
     ]);
-    expect(response.models[0]?.channels.map((channel) => channel.channelName)).toEqual([
-      "alpha",
-      "zeta",
-    ]);
+    expect(
+      response.models[0]?.channels.map((channel) => channel.channelName),
+    ).toEqual(["alpha", "zeta"]);
   });
 
   it("caps response-level heartbeat bucket count to latest 60 observed buckets", () => {

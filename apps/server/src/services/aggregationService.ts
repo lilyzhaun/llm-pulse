@@ -24,7 +24,10 @@ import {
 import { upstreamPool } from "./upstreamDb/pool.js";
 import { PulseQueryState } from "./pulse/queryState.js";
 import { PulseResponseFactory } from "./pulse/responseFactory.js";
-import { PulseSnapshotState, type SnapshotStatus } from "./pulse/snapshotState.js";
+import {
+  PulseSnapshotState,
+  type SnapshotStatus,
+} from "./pulse/snapshotState.js";
 
 const nowIso = () => new Date().toISOString();
 const elapsedSecondsSince = (startedAt: bigint) =>
@@ -102,9 +105,10 @@ export class AggregationService {
     const window = this.buildQueryWindow();
 
     try {
-      const { response, durationMs } = this.snapshotState.shouldUseSnapshotPath()
-        ? await this.runSnapshotRefresh(window, queryStartedAt)
-        : await this.runUpstreamRefresh(window, queryStartedAt);
+      const { response, durationMs } =
+        this.snapshotState.shouldUseSnapshotPath()
+          ? await this.runSnapshotRefresh(window, queryStartedAt)
+          : await this.runUpstreamRefresh(window, queryStartedAt);
 
       this.lastSnapshot = response;
       this.queryState.recordQuerySuccess(window.generatedAt, durationMs);
@@ -153,12 +157,16 @@ export class AggregationService {
 
       return {
         durationMs,
-        response: buildSnapshotAvailabilityResponse(store.readSnapshot(), window, {
-          kind: "upstream-postgres",
-          lastQueryAt: window.generatedAt,
-          lastQueryDurationMs: durationMs,
-          lastErrorMessage: null,
-        }),
+        response: buildSnapshotAvailabilityResponse(
+          store.readSnapshot(),
+          window,
+          {
+            kind: "upstream-postgres",
+            lastQueryAt: window.generatedAt,
+            lastQueryDurationMs: durationMs,
+            lastErrorMessage: null,
+          },
+        ),
       };
     } catch (error) {
       incrementSnapshotErrors("refresh");

@@ -17,7 +17,9 @@ export class ProcessedLogStore {
   }
 
   pruneProcessedLogs(olderThan: number): void {
-    this.db.prepare("DELETE FROM processed_logs WHERE created_at < ?").run(olderThan);
+    this.db
+      .prepare("DELETE FROM processed_logs WHERE created_at < ?")
+      .run(olderThan);
   }
 
   processedLogCount(): number {

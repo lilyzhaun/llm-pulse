@@ -11,11 +11,15 @@ export const readSnapshotFromStores = (deps: {
   bucketStore: BucketStore;
   processedLogStore: ProcessedLogStore;
 }): SnapshotData => {
-  const coveredCreatedAt = deps.metaStore.getMeta(META_KEYS.COVERED_UNTIL_CREATED_AT);
+  const coveredCreatedAt = deps.metaStore.getMeta(
+    META_KEYS.COVERED_UNTIL_CREATED_AT,
+  );
   const coveredId = deps.metaStore.getMeta(META_KEYS.COVERED_UNTIL_ID);
 
   return {
-    bootstrapCompletedAt: deps.metaStore.getMeta(META_KEYS.BOOTSTRAP_COMPLETED_AT),
+    bootstrapCompletedAt: deps.metaStore.getMeta(
+      META_KEYS.BOOTSTRAP_COMPLETED_AT,
+    ),
     coveredUntilCreatedAt: coveredCreatedAt ? Number(coveredCreatedAt) : null,
     coveredUntilId: coveredId ? Number(coveredId) : null,
     lastRefreshAt: deps.metaStore.getMeta(META_KEYS.LAST_REFRESH_AT),

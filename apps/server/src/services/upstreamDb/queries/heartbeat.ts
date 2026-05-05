@@ -1,9 +1,10 @@
 import type { QueryResult } from "pg";
 import { upstreamPool } from "../pool.js";
 import {
-  BUCKET_LIMIT,
   MINUTE_BUCKET_START_SQL,
+  RANKED_BUCKETS_CTE,
   REQUEST_LOG_FILTER_SQL,
+  SCOPED_LOGS_CTE,
 } from "./common.js";
 import type { UpstreamQueryClient } from "./modelAggregates.js";
 
@@ -38,25 +39,8 @@ WITH bucketed_logs AS (
     ${MINUTE_BUCKET_START_SQL} AS bucket_start
   FROM logs
   WHERE ${REQUEST_LOG_FILTER_SQL}
-), ranked_buckets AS (
-  SELECT
-    model_name,
-    bucket_start,
-    ROW_NUMBER() OVER (
-      PARTITION BY model_name
-      ORDER BY bucket_start DESC
-    ) AS bucket_rank
-  FROM (
-    SELECT DISTINCT model_name, bucket_start
-    FROM bucketed_logs
-  ) distinct_buckets
-), scoped_logs AS (
-  SELECT bucketed_logs.*
-  FROM bucketed_logs
-  JOIN ranked_buckets
-    ON ranked_buckets.model_name = bucketed_logs.model_name
-   AND ranked_buckets.bucket_start = bucketed_logs.bucket_start
-  WHERE ranked_buckets.bucket_rank <= ${BUCKET_LIMIT}
+${RANKED_BUCKETS_CTE("bucket_start")}
+${SCOPED_LOGS_CTE("bucket_start")}
 )
 SELECT
   scoped_logs.model_name,

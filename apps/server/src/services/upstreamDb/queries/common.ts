@@ -19,7 +19,30 @@ export const REQUEST_LOG_FILTER_SQL = `
     )
 `;
 
-export const MINUTE_BUCKET_INDEX_SQL =
-  `FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS})`;
-export const MINUTE_BUCKET_START_SQL =
-  `FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS}) * ${MINUTE_SECONDS}`;
+export const MINUTE_BUCKET_INDEX_SQL = `FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS})`;
+export const MINUTE_BUCKET_START_SQL = `FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS}) * ${MINUTE_SECONDS}`;
+
+export const RANKED_BUCKETS_CTE = (bucketColumnName: string): string => `
+), ranked_buckets AS (
+  SELECT
+    model_name,
+    ${bucketColumnName},
+    ROW_NUMBER() OVER (
+      PARTITION BY model_name
+      ORDER BY ${bucketColumnName} DESC
+    ) AS bucket_rank
+  FROM (
+    SELECT DISTINCT model_name, ${bucketColumnName}
+    FROM bucketed_logs
+  ) distinct_buckets
+`;
+
+export const SCOPED_LOGS_CTE = (bucketColumnName: string): string => `
+), scoped_logs AS (
+  SELECT bucketed_logs.*
+  FROM bucketed_logs
+  JOIN ranked_buckets
+    ON ranked_buckets.model_name = bucketed_logs.model_name
+   AND ranked_buckets.${bucketColumnName} = bucketed_logs.${bucketColumnName}
+  WHERE ranked_buckets.bucket_rank <= ${BUCKET_LIMIT}
+`;

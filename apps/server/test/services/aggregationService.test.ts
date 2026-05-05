@@ -38,7 +38,10 @@ vi.hoisted(() => {
 });
 
 vi.mock("../../src/services/upstreamDb/index.js", () => mockUpstreamDb);
-vi.mock("../../src/services/snapshot/refreshService.js", () => mockSnapshotRefresh);
+vi.mock(
+  "../../src/services/snapshot/refreshService.js",
+  () => mockSnapshotRefresh,
+);
 vi.mock("../../src/routes/metrics.js", () => mockMetrics);
 
 const GENERATED_AT = "2024-01-01T00:05:00.000Z";

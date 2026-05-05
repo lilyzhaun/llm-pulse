@@ -3,7 +3,9 @@ import { upstreamPool } from "../pool.js";
 import {
   BUCKET_LIMIT,
   MINUTE_BUCKET_INDEX_SQL,
+  RANKED_BUCKETS_CTE,
   REQUEST_LOG_FILTER_SQL,
+  SCOPED_LOGS_CTE,
 } from "./common.js";
 import { CACHE_TOKENS_SQL } from "./safeJsonExtract.js";
 
@@ -122,25 +124,8 @@ WITH bucketed_logs AS (
     ${MINUTE_BUCKET_INDEX_SQL} AS minute_bucket
   FROM logs
   WHERE ${REQUEST_LOG_FILTER_SQL}
-), ranked_buckets AS (
-  SELECT
-    model_name,
-    minute_bucket,
-    ROW_NUMBER() OVER (
-      PARTITION BY model_name
-      ORDER BY minute_bucket DESC
-    ) AS bucket_rank
-  FROM (
-    SELECT DISTINCT model_name, minute_bucket
-    FROM bucketed_logs
-  ) distinct_buckets
-), scoped_logs AS (
-  SELECT bucketed_logs.*
-  FROM bucketed_logs
-  JOIN ranked_buckets
-    ON ranked_buckets.model_name = bucketed_logs.model_name
-   AND ranked_buckets.minute_bucket = bucketed_logs.minute_bucket
-  WHERE ranked_buckets.bucket_rank <= ${BUCKET_LIMIT}
+${RANKED_BUCKETS_CTE("minute_bucket")}
+${SCOPED_LOGS_CTE("minute_bucket")}
 ), bucket_counts AS (
   SELECT
     model_name,

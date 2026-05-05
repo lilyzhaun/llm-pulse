@@ -134,7 +134,9 @@ export class BucketStore {
 
     const oldest = oldestRow.bucket_start;
     this.db
-      .prepare("DELETE FROM model_buckets WHERE model_name = ? AND bucket_start < ?")
+      .prepare(
+        "DELETE FROM model_buckets WHERE model_name = ? AND bucket_start < ?",
+      )
       .run(modelName, oldest);
     this.db
       .prepare(
