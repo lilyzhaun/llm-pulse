@@ -100,6 +100,11 @@ describe("getModelAggregates", () => {
     expect(MODEL_AGGREGATES_SQL).toContain("btrim(logs.other) = ''");
     expect(MODEL_AGGREGATES_SQL).toContain("substring(");
     expect(MODEL_AGGREGATES_SQL).toContain('"cache_tokens"');
+    expect(MODEL_AGGREGATES_SQL).toContain("from ");
+    expect(MODEL_AGGREGATES_SQL).toContain(
+      '"cache_tokens"\\s*:\\s*"?(-?\\d+(?:\\.\\d+)?)"?',
+    );
+    expect(MODEL_AGGREGATES_SQL).not.toContain("(-?\\\\d+(?:\\\\.\\\\d+)?)");
     expect(MODEL_AGGREGATES_SQL).not.toContain("other::json");
     expect(MODEL_AGGREGATES_SQL).not.toContain("other ::json");
   });

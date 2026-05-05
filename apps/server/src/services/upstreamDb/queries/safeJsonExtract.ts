@@ -1,4 +1,4 @@
-const JSON_NUMBER_PATTERN = "-?\\\\d+(?:\\\\.\\\\d+)?";
+const JSON_NUMBER_PATTERN = "-?\\d+(?:\\.\\d+)?";
 
 export const CACHE_TOKENS_SQL = `
   CASE
