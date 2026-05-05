@@ -107,9 +107,7 @@ describe("getModelAggregates", () => {
   it("filters visible models through enabled abilities only", () => {
     expect(MODEL_AGGREGATES_SQL).toContain("EXISTS (");
     expect(MODEL_AGGREGATES_SQL).toContain("FROM abilities");
-    expect(MODEL_AGGREGATES_SQL).toContain(
-      "abilities.model = logs.model_name",
-    );
+    expect(MODEL_AGGREGATES_SQL).toContain("abilities.model = logs.model_name");
     expect(MODEL_AGGREGATES_SQL).toContain("abilities.enabled = true");
     expect(MODEL_AGGREGATES_SQL).not.toMatch(/channels\.status\s*=\s*1/i);
     expect(MODEL_AGGREGATES_SQL).not.toMatch(/\bgroup_id\b/i);

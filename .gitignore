@@ -4,6 +4,7 @@ build/
 coverage/
 apps/server/data/*.sqlite
 apps/server/data/*.sqlite-*
+apps/server/data/*.json
 apps/server/data/*.bak.*
 .env
 .env.*
