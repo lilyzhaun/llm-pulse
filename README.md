@@ -1,5 +1,9 @@
 # LLM Pulse
 
+[![CI](actions/workflows/ci.yml/badge.svg)](actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Node.js 22](https://img.shields.io/badge/Node.js-22-339933.svg)](.nvmrc)
+
 LLM Pulse 是一个隐私保护优先的模型可用性仪表盘，用于从 `new-api` PostgreSQL `logs` 表中聚合模型、渠道和可用性状态，再向前端提供脱敏后的可视化数据。
 
 它的目标是帮助维护者快速看到模型是否可用、近期请求是否健康，以及不同渠道的聚合状态。项目不会把真实用户日志直接暴露给前端，前端只读取 BFF 生成的聚合结果。
@@ -45,6 +49,7 @@ cp .env.example .env
 
 ```env
 DATABASE_URL=postgresql://llm_pulse_readonly:REDACTED_PASSWORD@postgres.example.internal:5432/newapi
+BFF_BIND_HOST=127.0.0.1
 BFF_PORT=3001
 PULSE_REFRESH_INTERVAL_MS=20000
 AVAILABILITY_WINDOW_SECONDS=3600
@@ -59,6 +64,7 @@ PULSE_DB_CONN_TIMEOUT_MS=2000
 | 配置 | 说明 |
 | --- | --- |
 | `DATABASE_URL` | 必填。BFF 访问 `new-api` PostgreSQL 的连接串，建议使用只读用户，只允许读取 `logs` 与 `abilities` 表所需字段。 |
+| `BFF_BIND_HOST` | BFF 监听地址，默认 `127.0.0.1`，用于让生产进程只接受本机反向代理访问；Docker Compose 等容器端口发布场景需要在容器内显式设为 `0.0.0.0`。 |
 | `BFF_PORT` / `PORT` | BFF 监听端口。开发示例为 `3001`，生产可通过 `PORT` 或 `BFF_PORT` 覆盖。 |
 | `PULSE_REFRESH_INTERVAL_MS` | 前端和运维语义上的刷新间隔。 |
 | `AVAILABILITY_WINDOW_SECONDS` | 可用性聚合窗口长度。 |
@@ -67,7 +73,7 @@ PULSE_DB_CONN_TIMEOUT_MS=2000
 | `PULSE_DB_IDLE_TIMEOUT_MS` | 连接池空闲连接释放时间。 |
 | `PULSE_DB_CONN_TIMEOUT_MS` | PostgreSQL 建连超时。 |
 
-安全提醒：不要提交真实 `DATABASE_URL`、生产 `.env`、原始用户日志或数据库排障输出。生产环境建议通过 systemd、容器平台或密钥管理系统注入 `DATABASE_URL`、`PORT` 或 `BFF_PORT` 等变量，并把环境文件权限限制为仅服务运行用户可读。
+安全提醒：不要提交真实 `DATABASE_URL`、生产 `.env`、原始用户日志或数据库排障输出。生产环境建议通过 systemd、容器平台或密钥管理系统注入 `DATABASE_URL`、`BFF_BIND_HOST`、`PORT` 或 `BFF_PORT` 等变量，并把环境文件权限限制为仅服务运行用户可读。非容器生产部署建议保留 `BFF_BIND_HOST=127.0.0.1`，由 Nginx 从本机反向代理访问；只有容器内端口发布需要使用 `0.0.0.0`。
 
 ## Development
 
@@ -84,7 +90,7 @@ npm run dev:server
 npm run dev:frontend
 ```
 
-开发环境默认 BFF 端口来自 `BFF_PORT`，示例值为 `3001`。前端路径约定为 `/status/`，API 路径为：
+开发环境默认 BFF 地址来自 `BFF_BIND_HOST`，示例值为 `127.0.0.1`；端口来自 `BFF_PORT`，示例值为 `3001`。前端路径约定为 `/status/`，API 路径为：
 
 - `GET /status/api/pulse`
 - `GET /status/api/health`
@@ -170,7 +176,8 @@ LLM Pulse 采用 BFF 架构：
 3. `/status/api/pulse` 返回脱敏聚合结果，包含 `dataSource` 和模型级 `tokens`、`cost`、`rpm`、`tpm`；`summary` 与 `models` 只统计通过 `abilities.enabled=true` 过滤后的模型集合。
 4. PostgreSQL 不可达时，BFF 不把连接错误作为 5xx 直接暴露给前端，而是返回内存快照或空快照，并通过 `dataSource.kind` 标记数据来源。
 5. Express 暴露 `/status/api/pulse`、`/status/api/health` 和 `/status/api/metrics`。
-6. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
+6. BFF 默认绑定 `127.0.0.1`，生产由本机 Nginx 反代访问；Docker Compose 在容器内显式使用 `BFF_BIND_HOST=0.0.0.0` 以配合端口发布。
+7. `apps/frontend` 读取脱敏聚合 API，并在 `/status/` 下展示仪表盘。
 
 共享类型位于 `packages/shared`，用于降低前后端 API 结构漂移风险。
 
