@@ -5,6 +5,7 @@ import type {
   ModelAggregate,
   UpstreamHeartbeatBucket,
 } from "../../src/services/upstreamDb/index.js";
+import type { SnapshotData } from "../../src/services/snapshot/types.js";
 
 const mockUpstreamDb = vi.hoisted(() => ({
   getModelAggregates: vi.fn(),
@@ -19,11 +20,26 @@ const mockUpstreamDb = vi.hoisted(() => ({
   }),
 }));
 
+const mockSnapshotRefresh = vi.hoisted(() => ({
+  refreshIncremental: vi.fn(),
+}));
+
+const mockMetrics = vi.hoisted(() => ({
+  incrementSnapshotErrors: vi.fn(),
+  incrementUpstreamDbQueryErrors: vi.fn(),
+  observeAggregationDurationSeconds: vi.fn(),
+  observeSnapshotRefreshDurationSeconds: vi.fn(),
+  observeUpstreamDbQueryDurationSeconds: vi.fn(),
+}));
+
 vi.hoisted(() => {
   process.env.DATABASE_URL = "postgres://pulse:test@localhost:5432/pulse_test";
+  process.env.PULSE_SNAPSHOT_ENABLED = "true";
 });
 
 vi.mock("../../src/services/upstreamDb/index.js", () => mockUpstreamDb);
+vi.mock("../../src/services/snapshot/refreshService.js", () => mockSnapshotRefresh);
+vi.mock("../../src/routes/metrics.js", () => mockMetrics);
 
 const GENERATED_AT = "2024-01-01T00:05:00.000Z";
 const NEXT_GENERATED_AT = "2024-01-01T00:06:00.000Z";
@@ -89,11 +105,132 @@ const mockFailedQuery = () => {
   mockUpstreamDb.getHeartbeatBuckets.mockResolvedValue([]);
 };
 
+const createSnapshotData = (): SnapshotData => ({
+  bootstrapCompletedAt: "2024-01-01T00:00:00.000Z",
+  coveredUntilCreatedAt: 1_704_067_500,
+  coveredUntilId: 10,
+  lastRefreshAt: "2024-01-01T00:05:00.000Z",
+  lastSuccessAt: "2024-01-01T00:05:00.000Z",
+  enabledModels: new Set(["gpt-4o-mini"]),
+  models: new Map([
+    [
+      "gpt-4o-mini",
+      [
+        {
+          modelName: "gpt-4o-mini",
+          bucketStart: 1_704_067_440,
+          successCount: 2,
+          errorCount: 0,
+          totalCount: 2,
+          latencySumSeconds: 2,
+          latencySamples: 2,
+          promptTokens: 100,
+          cacheTokens: 20,
+          completionTokens: 30,
+          quotaSum: 42,
+          lastSeenAt: 1_704_067_470,
+        },
+      ],
+    ],
+  ]),
+  channels: new Map([
+    [
+      "gpt-4o-mini",
+      [
+        {
+          modelName: "gpt-4o-mini",
+          channelId: 10,
+          channelName: "primary",
+          bucketStart: 1_704_067_440,
+          successCount: 2,
+          errorCount: 0,
+          totalCount: 2,
+          latencySumSeconds: 2,
+          latencySamples: 2,
+          promptTokens: 100,
+          cacheTokens: 20,
+          completionTokens: 30,
+          quotaSum: 42,
+          lastSeenAt: 1_704_067_470,
+        },
+      ],
+    ],
+  ]),
+  processedLogCount: 1,
+});
+
+const createReadySnapshotStoreLike = () =>
+  ({
+    isReady: () => true,
+    readSnapshot: () => createSnapshotData(),
+    getMeta: () => null,
+    close: () => undefined,
+  }) as unknown as import("../../src/services/snapshot/store.js").SnapshotStore;
+
+const createNotReadySnapshotStoreLike = () =>
+  ({
+    isReady: () => false,
+    readSnapshot: () => createSnapshotData(),
+    getMeta: () => null,
+    close: () => undefined,
+  }) as unknown as import("../../src/services/snapshot/store.js").SnapshotStore;
+
 describe("AggregationService", () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(GENERATED_AT));
     vi.clearAllMocks();
+  });
+
+  it("uses snapshot refresh path when snapshot is enabled and store is ready", async () => {
+    const service = new AggregationService();
+    service.configureSnapshotStore(createReadySnapshotStoreLike());
+    mockSnapshotRefresh.refreshIncremental.mockResolvedValue({
+      processed: 1,
+      skipped: 0,
+      touchedModels: 1,
+      coveredUntilCreatedAt: 1_704_067_500,
+      coveredUntilId: 10,
+      durationMs: 5,
+    });
+
+    const response = await service.refresh();
+
+    expect(mockSnapshotRefresh.refreshIncremental).toHaveBeenCalledTimes(1);
+    expect(mockUpstreamDb.getModelAggregates).not.toHaveBeenCalled();
+    expect(response.dataSource?.kind).toBe("upstream-postgres");
+    expect(response.models[0]?.modelName).toBe("gpt-4o-mini");
+  });
+
+  it("falls back to memory snapshot and records snapshot refresh error when snapshot refresh fails", async () => {
+    const service = new AggregationService();
+    mockSuccessfulQuery();
+    service.configureSnapshotStore(createNotReadySnapshotStoreLike());
+    await service.refresh();
+
+    service.configureSnapshotStore(createReadySnapshotStoreLike());
+
+    mockSnapshotRefresh.refreshIncremental.mockRejectedValue(
+      new Error("snapshot refresh failed"),
+    );
+
+    await service.refresh();
+    const response = await service.getAggregatedPulse();
+
+    expect(mockMetrics.incrementSnapshotErrors).toHaveBeenCalledWith("refresh");
+    expect(response.dataSource?.kind).toBe("memory-snapshot");
+  });
+
+  it("uses upstream SQL path when snapshot store is configured but not ready", async () => {
+    mockSuccessfulQuery();
+    const service = new AggregationService();
+    service.configureSnapshotStore(createNotReadySnapshotStoreLike());
+
+    const response = await service.refresh();
+
+    expect(mockSnapshotRefresh.refreshIncremental).not.toHaveBeenCalled();
+    expect(mockUpstreamDb.getModelAggregates).toHaveBeenCalledTimes(1);
+    expect(response.dataSource?.kind).toBe("upstream-postgres");
   });
 
   it("queries upstream PostgreSQL and maps additive model fields", async () => {
