@@ -1,0 +1,47 @@
+groups:
+  - name: llm-pulse
+    rules:
+      - alert: LLMPulseUpstreamDbUnreachable
+        expr: llm_pulse_upstream_db_reachable == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse 上游 PostgreSQL 不可达
+          description: 最近一次 LLM Pulse PostgreSQL 查询失败。请检查 /status/api/health 中的 upstreamDb、systemd journal、DATABASE_URL、数据库网络和 logs 表权限。
+
+      - alert: LLMPulseUpstreamDbQueryErrors
+        expr: increase(llm_pulse_upstream_db_query_errors_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse PostgreSQL 查询错误增加
+          description: 最近 5 分钟内 upstream-db 查询错误数增加。请检查 PostgreSQL 连接参数、权限、查询超时和 BFF 日志。
+
+      - alert: LLMPulseUpstreamDbQuerySlow
+        expr: histogram_quantile(0.95, rate(llm_pulse_upstream_db_query_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse PostgreSQL 查询变慢
+          description: upstream-db 查询 P95 超过 2 秒。请检查 logs 表数据量、索引、数据库负载和 PULSE_QUERY_TIMEOUT_MS。
+
+      - alert: LLMPulseMetricsUnavailable
+        expr: up{job="llm-pulse"} == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: LLM Pulse metrics 端点不可达
+          description: Prometheus 无法抓取 /status/api/metrics。请检查 systemctl is-active llm-pulse、本机端口 43130 和 Nginx /status/ 反代配置。
+
+      - alert: LLMPulseQueryTimestampStale
+        expr: time() - llm_pulse_polling_last_timestamp_seconds > 300
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: LLM Pulse 查询时间戳长期未更新
+          description: 最近一次 PostgreSQL 查询时间距离当前已超过 5 分钟。请结合 PULSE_REFRESH_INTERVAL_MS 检查服务刷新、数据库连接和应用日志。
