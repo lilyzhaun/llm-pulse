@@ -10,6 +10,8 @@ LLM Pulse 在 BFF 上暴露 Prometheus 文本格式指标：
 - 路径：`/status/api/metrics`
 - 内容类型：由 `prom-client` 设置，通常为 `text/plain; version=0.0.4; charset=utf-8`
 
+当前 BFF 默认绑定 `127.0.0.1:43130`，生产由本机 Nginx 反向代理访问。Nginx 已把 `/status/api/metrics` 限制为 localhost 访问，公网请求会被拒绝；如需远程 Prometheus 抓取，应在 Nginx 中显式加入可信抓取 IP，而不是放开全网访问。
+
 该端点包含两类指标：
 
 1. `prom-client` 默认 Node.js 进程指标，例如进程 CPU、内存、事件循环、GC 和 Node.js 版本相关指标。
@@ -47,7 +49,7 @@ scrape_configs:
           service: llm-pulse
 ```
 
-如果只能通过公开域名访问，也可以抓取反代后的 HTTPS 地址：
+如果只能通过公开域名访问，也可以抓取反代后的 HTTPS 地址，但必须先在 Nginx 的 `/status/api/metrics` location 中明确允许 Prometheus 抓取 IP。不要为了抓取方便移除 localhost 限制。
 
 ```yaml
 scrape_configs:
@@ -63,9 +65,24 @@ scrape_configs:
 
 生产环境优先选择内网或本机抓取，避免把监控依赖绑定到公网 TLS、DNS 或外部链路上。若使用公网抓取，请同时保留 `/status/api/health` 的独立探活，以便区分应用降级和反向代理链路异常。
 
+## 运行约束与监控边界
+
+当前宿主机保留 `User=root`、`WorkingDirectory=/root/repos/llm-pulse` 与 `ProtectHome=no`。监控配置不应把服务假设为非 root 用户、非 `/root` 部署目录或 `ProtectHome=yes`。
+
+这些约束下已落地的补偿控制需要持续监控和复核：
+
+- localhost bind：BFF 只监听 `127.0.0.1:43130`，Nginx 是公网入口。
+- Nginx rate limit 与 security headers：`/status/` 通过 `limit_req` 限流，并返回 HSTS、`X-Frame-Options`、`X-Content-Type-Options`、`Referrer-Policy` 和 Report-Only CSP。
+- metrics 限制：`/status/api/metrics` 仅允许 localhost 或显式列出的抓取 IP。
+- systemd sandbox 与资源限制：`NoNewPrivileges=yes`、`ProtectSystem=strict`、`PrivateTmp=yes`、内核相关保护、地址族限制、`MemoryMax=512M`、`MemoryHigh=384M`、`CPUQuota=80%`、`TasksMax=128` 和 `LimitNOFILE=65536`。
+- least-privilege DB：BFF 使用只读 PostgreSQL 账号，仅能读取 `logs` 与 `abilities` 所需字段。
+- secret scanning：CI 已运行 secret scanning 和依赖完整性检查，防止生产 secret 回流仓库。
+
+生产配置源是 `/etc/llm-pulse.env`。仓库根目录 `.env` 只用于本地开发，不保存生产 secret；告警、通知、Grafana 注释和工单里都不要粘贴真实连接串。
+
 ## 告警规则建议
 
-以下规则仅使用当前实现中真实存在的指标名。阈值应按实际 `PULSE_REFRESH_INTERVAL_MS`、网络条件和告警噪声调整。
+以下规则仅使用当前实现中真实存在的指标名。阈值应按实际 `PULSE_REFRESH_INTERVAL_MS`、网络条件和告警噪声调整。可直接加载的 Prometheus 规则文件见 [`deploy/prometheus/llm-pulse.rules.yml`](../deploy/prometheus/llm-pulse.rules.yml)。
 
 ### 上游 PostgreSQL 不可达
 

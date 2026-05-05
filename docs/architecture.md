@@ -138,12 +138,12 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 
 安全边界集中在 BFF：
 
-- `DATABASE_URL` 只允许服务端读取。生产环境应通过 systemd、容器平台或密钥管理系统注入，不应提交 `.env` 或生产环境变量文件。
+- `DATABASE_URL` 只允许服务端读取。当前宿主机生产配置源是 `/etc/llm-pulse.env`，该文件由 systemd `EnvironmentFile` 读取并限制权限；仓库根目录 `.env` 只用于本地开发，不保存生产 secret。
 - 前端只调用 `/status/api/*`，不直接访问 PostgreSQL。
 - `/status/api/pulse` 只返回模型、渠道和时间窗口上的聚合结果，不暴露原始用户日志、请求正文、单条请求记录或用户级明细。
 - `/status/api/health` 用于探活和排障，生产环境中的错误消息应保持脱敏，避免把连接串、内部主机名、账号或密码泄露给客户端。
 - 文档、测试和示例应使用占位值或匿名化数据。
-- 生产环境建议为 BFF 创建只读 PostgreSQL 用户，只授予读取 `logs` 与 `abilities` 表所需字段的最小权限。
+- 生产环境已为 BFF 使用最小权限 PostgreSQL 只读用户，只授予读取 `logs` 与 `abilities` 表所需字段的权限。
 
 这条边界让公开 Dashboard 可以展示服务质量趋势，同时避免把数据库访问能力和用户请求明细传给浏览器。
 
@@ -154,6 +154,22 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 这些公开接口禁止暴露以下数据类别：`DATABASE_URL`、数据库用户名、数据库密码、内部主机名、原始用户日志、上游请求正文。若未来接入用户级明细、租户数据、请求正文、计费明细或其他敏感数据，必须重新评审访问控制策略，再决定是否引入应用层鉴权、访问控制列表或隔离后的内部接口。
 
 生产部署建议在反向代理层对 `/status/api/*` 实施 rate limit，降低公开只读接口被高频访问的风险。本设计不要求在当前应用层为这些端点添加鉴权。
+
+### 当前生产约束与补偿控制
+
+当前宿主机保留以下硬约束，文档和配置不得把它们写成已迁移状态：
+
+- `User=root`
+- `WorkingDirectory=/root/repos/llm-pulse`
+- `ProtectHome=no`
+
+这些约束已通过已落地的补偿控制降低风险：
+
+- BFF 默认绑定 `127.0.0.1:43130`，只接受本机 Nginx 反向代理访问；Docker Compose 端口发布场景才在容器内显式使用 `BFF_BIND_HOST=0.0.0.0`。
+- Nginx 已为 `/status/` 启用 HTTPS、`limit_req`、基础安全响应头和 Report-Only CSP；`/status/api/metrics` 在反向代理层限制为 localhost 访问。
+- systemd 在保留 root 和 `/root/repos/llm-pulse` 的同时启用 `NoNewPrivileges=yes`、`ProtectSystem=strict`、`PrivateTmp=yes`、内核相关保护、地址族限制、`ReadOnlyPaths`、`ReadWritePaths`、`MemoryMax=512M`、`MemoryHigh=384M`、`CPUQuota=80%`、`TasksMax=128` 和 `LimitNOFILE=65536`。
+- PostgreSQL 使用 least-privilege DB 账号，BFF 只具备读取 `logs` 与 `abilities` 的最小权限，不具备写入或 DDL 能力。
+- CI 已加入 secret scanning 和依赖完整性检查，避免生产 secret、连接串或 token 回流到仓库。
 
 ## 关键配置
 
@@ -183,5 +199,6 @@ BFF 持有访问 PostgreSQL 所需的 `DATABASE_URL`，前端不会接触数据�
 - BFF 依赖运行环境到 `new-api` PostgreSQL 的网络可达性。本机开发不应假设 `127.0.0.1:5432` 一定可用，除非 PostgreSQL 已显式把端口映射到宿主机。
 - 上游 PostgreSQL 短暂不可达时，`/status/api/pulse` 会返回内存快照或空响应，`/status/api/health` 会返回 200 与 `status=degraded`，并设置 `upstreamDb.reachable=false`。
 - 服务端只维护进程内快照。进程重启后若 PostgreSQL 仍不可达，会返回 `dataSource.kind=empty`，直到下一次查询成功。
-- 当前宿主机部署路径在 `/root/repos/llm-pulse`。已知 `systemd` 的 `ProtectHome=yes` 会让服务命名空间内的 `/root` 不可达，和 `WorkingDirectory=/root/repos/llm-pulse` 存在启动阶段冲突。该限制尚未闭环，不应把它记录为已完成的加固项。后续可通过迁移部署目录到非 `/root` 路径，或重新设计 unit 的路径隔离策略来解决。
-- 生产环境不要依赖仓库根目录本地 `.env`。连接串和端口等配置应由部署系统注入，并限制环境文件权限。
+- 当前宿主机部署路径保留在 `/root/repos/llm-pulse`，systemd 保留 `User=root`、`WorkingDirectory=/root/repos/llm-pulse` 与 `ProtectHome=no`。不要在未迁移目录前把文档或配置改写为非 root 用户、非 `/root` 路径或 `ProtectHome=yes`。
+- 生产环境不要依赖仓库根目录本地 `.env`。当前生产配置源是 `/etc/llm-pulse.env`，连接串和端口等配置由该文件注入，并限制环境文件权限。
+- 上游 PostgreSQL 的推荐索引和容量边界见 [`docs/upstream-db.md`](upstream-db.md)。当前没有实现 `PULSE_MAX_MODELS` 或 `PULSE_MAX_CHANNELS_PER_MODEL` 代码层限制，这两个配置名仅作为后续保护项建议。

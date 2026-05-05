@@ -36,10 +36,10 @@ systemctl is-active llm-pulse
 如需查看关键 sandbox 配置：
 
 ```bash
-systemctl show llm-pulse.service -p WorkingDirectory -p EnvironmentFile -p ProtectSystem -p ProtectHome -p ReadWritePaths -p ReadOnlyPaths
+systemctl show llm-pulse.service -p User -p Group -p WorkingDirectory -p EnvironmentFile -p ProtectSystem -p ProtectHome -p NoNewPrivileges -p MemoryMax -p MemoryHigh -p CPUQuota -p ReadWritePaths -p ReadOnlyPaths
 ```
 
-当前已知限制：不要把 `ProtectHome=yes` 视为已完成加固项。当前宿主机的工作目录是 `/root/repos/llm-pulse`，`ProtectHome=yes` 会让 systemd 服务命名空间内的 `/root` 不可达，服务可能在启动阶段卡在 `status=200/CHDIR`。在迁移到非 `/root` 部署目录，或重新设计路径隔离策略前，这个限制仍需保留在风险清单里。
+当前宿主机保留硬约束：`User=root`、`WorkingDirectory=/root/repos/llm-pulse`、`ProtectHome=no`。不要在未迁移部署目录前把它们改成非 root 用户、非 `/root` 路径或 `ProtectHome=yes`。已落地的补偿控制包括 `NoNewPrivileges=yes`、`ProtectSystem=strict`、`PrivateTmp=yes`、内核相关保护、地址族限制、`ReadOnlyPaths=/root/repos/llm-pulse /etc/llm-pulse.env`、`ReadWritePaths=/var/log /root/repos/llm-pulse/apps/server/data`、`MemoryMax=512M`、`MemoryHigh=384M`、`CPUQuota=80%`、`TasksMax=128` 和 `LimitNOFILE=65536`。
 
 ## 健康检查
 
@@ -108,7 +108,7 @@ PULSE_DB_POOL_MAX=5
 PULSE_DB_CONN_TIMEOUT_MS=2000
 ```
 
-安全要求：分享排障信息前，必须替换 `DATABASE_URL` 中的密码、用户名之外的敏感路径、内部主机名和端口。应用日志和 API 响应也不应暴露完整连接串。
+`/etc/llm-pulse.env` 是当前宿主机的生产配置源，仓库根目录 `.env` 只用于本地开发，不保存生产 secret。安全要求：分享排障信息前，必须替换 `DATABASE_URL` 中的密码、用户名之外的敏感路径、内部主机名和端口。应用日志和 API 响应也不应暴露完整连接串。
 
 ### 检查网络和 SQL
 
@@ -125,7 +125,7 @@ docker exec postgres psql -U newapi -d newapi -c 'SELECT COUNT(*) FROM logs;'
 
 ### 检查权限
 
-生产建议创建只读用户给 LLM Pulse 使用。该用户只需要读取 `logs` 与 `abilities` 表所需字段，不需要写权限、DDL 权限或管理员权限。
+生产已为 LLM Pulse 使用 least-privilege DB 账号。该用户只需要读取 `logs` 与 `abilities` 表所需字段，不需要写权限、DDL 权限或管理员权限。
 
 可以用只读用户验证最小查询能力：
 
@@ -278,10 +278,11 @@ ss -ltnp | grep ':43130'
 ## 安全提醒
 
 - `/etc/llm-pulse.env` 这类凭证文件应限制为仅 root 或服务运行用户可读，建议权限为 `600`。
-- 不要把真实 `.env`、`DATABASE_URL`、数据库密码、内部主机名、原始用户日志或请求正文提交到仓库。
+- `/etc/llm-pulse.env` 是生产配置源，仓库根目录 `.env` 不保存生产 secret；不要把真实 `.env`、`DATABASE_URL`、数据库密码、内部主机名、原始用户日志或请求正文提交到仓库。
 - 不要把带敏感字段的日志片段直接落盘到文档、工单或聊天记录。
 - 排障命令输出需要分享时，先用占位符替换内部地址、账号、密码、token、cookie 和用户标识。
 - `/status/api/pulse` 是公开只读聚合接口，不能扩展为返回原始日志明细。
+- 当前补偿控制依赖 BFF localhost bind、Nginx rate limit 与安全响应头、metrics localhost 限制、systemd sandbox 与资源限制、least-privilege DB，以及 CI secret scanning。排障或改配置时必须逐项确认这些控制仍有效。
 
 ## 升级或改配置后的验收
 
