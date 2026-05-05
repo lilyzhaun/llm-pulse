@@ -1,5 +1,10 @@
 import type { QueryResult } from "pg";
 import { upstreamPool } from "../pool.js";
+import {
+  BUCKET_LIMIT,
+  MINUTE_BUCKET_START_SQL,
+  REQUEST_LOG_FILTER_SQL,
+} from "./common.js";
 import type { UpstreamQueryClient } from "./modelAggregates.js";
 
 export interface HeartbeatBucketRow {
@@ -24,27 +29,15 @@ const toNumber = (value: string | number): number => Number(value);
 const toNullableNumber = (value: string | number | null): number | null =>
   value === null ? null : Number(value);
 
-const MINUTE_SECONDS = 60;
-const BUCKET_LIMIT = 60;
-
 export const HEARTBEAT_SQL = `
 WITH bucketed_logs AS (
   SELECT
     logs.model_name,
     logs.type,
     COALESCE(logs.use_time, 0) AS use_time,
-    FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS}) * ${MINUTE_SECONDS} AS bucket_start
+    ${MINUTE_BUCKET_START_SQL} AS bucket_start
   FROM logs
-  WHERE logs.created_at < $1::bigint
-    AND logs.type IN (2, 5)
-    AND logs.model_name IS NOT NULL
-    AND logs.model_name <> ''
-    AND EXISTS (
-      SELECT 1
-      FROM abilities
-      WHERE abilities.model = logs.model_name
-        AND abilities.enabled = true
-    )
+  WHERE ${REQUEST_LOG_FILTER_SQL}
 ), ranked_buckets AS (
   SELECT
     model_name,

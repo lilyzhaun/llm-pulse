@@ -1,5 +1,10 @@
 import type { QueryResult } from "pg";
 import { upstreamPool } from "../pool.js";
+import {
+  BUCKET_LIMIT,
+  MINUTE_BUCKET_INDEX_SQL,
+  REQUEST_LOG_FILTER_SQL,
+} from "./common.js";
 import type { UpstreamQueryClient } from "./modelAggregates.js";
 
 export interface ChannelAggregateRow {
@@ -29,9 +34,6 @@ const toNumber = (value: string | number | null): number =>
 const toNullableNumber = (value: string | number | null): number | null =>
   value === null ? null : Number(value);
 
-const MINUTE_SECONDS = 60;
-const BUCKET_LIMIT = 60;
-
 export const CHANNEL_AGGREGATES_SQL = `
 WITH bucketed_logs AS (
   SELECT
@@ -41,18 +43,9 @@ WITH bucketed_logs AS (
     logs.type,
     COALESCE(logs.use_time, 0) AS use_time,
     logs.created_at,
-    FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS}) AS minute_bucket
+    ${MINUTE_BUCKET_INDEX_SQL} AS minute_bucket
   FROM logs
-  WHERE logs.created_at < $1::bigint
-    AND logs.type IN (2, 5)
-    AND logs.model_name IS NOT NULL
-    AND logs.model_name <> ''
-    AND EXISTS (
-      SELECT 1
-      FROM abilities
-      WHERE abilities.model = logs.model_name
-        AND abilities.enabled = true
-    )
+  WHERE ${REQUEST_LOG_FILTER_SQL}
 ), ranked_buckets AS (
   SELECT
     model_name,

@@ -1,5 +1,10 @@
 import type { QueryResult, QueryResultRow } from "pg";
 import { upstreamPool } from "../pool.js";
+import {
+  BUCKET_LIMIT,
+  MINUTE_BUCKET_INDEX_SQL,
+  REQUEST_LOG_FILTER_SQL,
+} from "./common.js";
 import { CACHE_TOKENS_SQL } from "./safeJsonExtract.js";
 
 export interface UpstreamQueryClient {
@@ -43,9 +48,6 @@ export interface ModelAggregate {
   tpmAvg: number;
   tpmPeak: number;
 }
-
-const MINUTE_SECONDS = 60;
-const BUCKET_LIMIT = 60;
 
 const toFiniteNumber = (value: string | number | null): number => {
   if (value === null) {
@@ -117,18 +119,9 @@ WITH bucketed_logs AS (
     COALESCE(logs.completion_tokens, 0) AS completion_tokens,
     COALESCE(logs.quota, 0) AS quota,
     ${CACHE_TOKENS_SQL} AS cache_tokens,
-    FLOOR(logs.created_at::numeric / ${MINUTE_SECONDS}) AS minute_bucket
+    ${MINUTE_BUCKET_INDEX_SQL} AS minute_bucket
   FROM logs
-  WHERE logs.created_at < $1::bigint
-    AND logs.type IN (2, 5)
-    AND logs.model_name IS NOT NULL
-    AND logs.model_name <> ''
-    AND EXISTS (
-      SELECT 1
-      FROM abilities
-      WHERE abilities.model = logs.model_name
-        AND abilities.enabled = true
-    )
+  WHERE ${REQUEST_LOG_FILTER_SQL}
 ), ranked_buckets AS (
   SELECT
     model_name,
