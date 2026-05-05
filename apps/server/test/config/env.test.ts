@@ -124,4 +124,64 @@ describe("env config", () => {
 
     expect(env.nodeEnv).toBe("development");
   });
+
+  it("provides snapshot defaults", async () => {
+    const { env } = await loadEnv();
+
+    expect(env.snapshotEnabled).toBe(false);
+    expect(env.snapshotPath).toMatch(
+      /apps\/server\/data\/pulse-snapshot\.sqlite$/,
+    );
+    expect(env.reconcileSeconds).toBe(120);
+    expect(env.bootstrapBatchSize).toBe(1_000);
+  });
+
+  it("accepts custom snapshot env values", async () => {
+    const { env } = await loadEnv({
+      PULSE_SNAPSHOT_ENABLED: "yes",
+      PULSE_SNAPSHOT_PATH: "/tmp/custom.sqlite",
+      PULSE_RECONCILE_SECONDS: "300",
+      PULSE_BOOTSTRAP_BATCH_SIZE: "2000",
+    });
+
+    expect(env.snapshotEnabled).toBe(true);
+    expect(env.snapshotPath).toBe("/tmp/custom.sqlite");
+    expect(env.reconcileSeconds).toBe(300);
+    expect(env.bootstrapBatchSize).toBe(2_000);
+  });
+
+  it.each(["true", "1", "yes", "on"])(
+    "accepts truthy PULSE_SNAPSHOT_ENABLED value: %s",
+    async (value) => {
+      const { env } = await loadEnv({ PULSE_SNAPSHOT_ENABLED: value });
+
+      expect(env.snapshotEnabled).toBe(true);
+    },
+  );
+
+  it.each(["false", "0", "no", "off"])(
+    "accepts falsy PULSE_SNAPSHOT_ENABLED value: %s",
+    async (value) => {
+      const { env } = await loadEnv({ PULSE_SNAPSHOT_ENABLED: value });
+
+      expect(env.snapshotEnabled).toBe(false);
+    },
+  );
+
+  it("rejects non-boolean PULSE_SNAPSHOT_ENABLED", async () => {
+    await expect(loadEnv({ PULSE_SNAPSHOT_ENABLED: "maybe" })).rejects.toThrow(
+      "PULSE_SNAPSHOT_ENABLED must be boolean-like",
+    );
+  });
+
+  it.each([
+    ["PULSE_RECONCILE_SECONDS", { PULSE_RECONCILE_SECONDS: "0" }],
+    ["PULSE_BOOTSTRAP_BATCH_SIZE", { PULSE_BOOTSTRAP_BATCH_SIZE: "-10" }],
+    ["PULSE_RECONCILE_SECONDS", { PULSE_RECONCILE_SECONDS: "abc" }],
+    ["PULSE_BOOTSTRAP_BATCH_SIZE", { PULSE_BOOTSTRAP_BATCH_SIZE: "12.5" }],
+  ])("rejects invalid snapshot numeric value: %s", async (_name, envVars) => {
+    await expect(loadEnv(envVars as NodeJS.ProcessEnv)).rejects.toThrow(
+      /must be (a positive integer|an integer)/,
+    );
+  });
 });

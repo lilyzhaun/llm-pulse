@@ -50,6 +50,41 @@ const parseInteger = (
   return parsed;
 };
 
+const parseBoolean = (
+  name: string,
+  value: string | undefined,
+  fallback: boolean,
+): boolean => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "") {
+    return fallback;
+  }
+
+  if (["true", "1", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+
+  if (["false", "0", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  throw new Error(`${name} must be boolean-like`);
+};
+
+const parseSnapshotPath = (value: string | undefined): string => {
+  const trimmed = value?.trim();
+  if (trimmed) {
+    return trimmed;
+  }
+
+  const currentDir = dirname(fileURLToPath(import.meta.url));
+  return resolve(currentDir, "../../data/pulse-snapshot.sqlite");
+};
+
 const parsePositiveInteger = (
   name: string,
   value: string | undefined,
@@ -115,6 +150,12 @@ const currentEnv = {
   bindHost: parseBindHost(process.env.BFF_BIND_HOST),
   logLevel: process.env.LOG_LEVEL,
   databaseUrl: parseRequiredString("DATABASE_URL", process.env.DATABASE_URL),
+  snapshotEnabled: parseBoolean(
+    "PULSE_SNAPSHOT_ENABLED",
+    process.env.PULSE_SNAPSHOT_ENABLED,
+    false,
+  ),
+  snapshotPath: parseSnapshotPath(process.env.PULSE_SNAPSHOT_PATH),
   refreshIntervalMs: parsePositiveInteger(
     "PULSE_REFRESH_INTERVAL_MS",
     process.env.PULSE_REFRESH_INTERVAL_MS ?? process.env.POLL_INTERVAL_MS,
@@ -144,6 +185,16 @@ const currentEnv = {
     "PULSE_DB_CONN_TIMEOUT_MS",
     process.env.PULSE_DB_CONN_TIMEOUT_MS,
     2_000,
+  ),
+  reconcileSeconds: parsePositiveInteger(
+    "PULSE_RECONCILE_SECONDS",
+    process.env.PULSE_RECONCILE_SECONDS,
+    120,
+  ),
+  bootstrapBatchSize: parsePositiveInteger(
+    "PULSE_BOOTSTRAP_BATCH_SIZE",
+    process.env.PULSE_BOOTSTRAP_BATCH_SIZE,
+    1_000,
   ),
 } as const;
 
