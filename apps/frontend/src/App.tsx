@@ -6,7 +6,7 @@ import { Dashboard } from "./pages/Dashboard";
 const THEME_STORAGE_KEY = "llm-pulse-theme-preference";
 const THEME_COLORS: Record<ThemeMode, string> = {
   light: "#faf9f5",
-  dark: "#151412",
+  dark: "#141413",
 };
 
 type ThemeMode = "light" | "dark";
