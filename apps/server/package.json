@@ -17,7 +17,7 @@
     "express-rate-limit": "^8.5.0",
     "helmet": "^8.1.0",
     "better-sqlite3": "^11.5.0",
-    "pg": "^8.13.1",
+    "pg": "^8.21.0",
     "pino": "^10.3.1",
     "prom-client": "^15.1.3"
   },
