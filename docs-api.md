@@ -162,7 +162,7 @@ New-Api-User: 1001
 
 ```http
 HTTP/1.1 200 OK
-Auth-Version: 864b7076dbcd0a3c01b5520316720ebf
+Auth-Version: REDACTED_AUTH_VERSION
 Content-Type: application/json; charset=utf-8
 X-New-Api-Version: v0.13.1-patch.1
 X-Oneapi-Request-Id: req-example-003
@@ -325,7 +325,7 @@ curl -i -sS \
 
 ```http
 HTTP/1.1 200 OK
-Auth-Version: 864b7076dbcd0a3c01b5520316720ebf
+Auth-Version: REDACTED_AUTH_VERSION
 Content-Type: application/json; charset=utf-8
 X-New-Api-Version: v0.13.1-patch.1
 X-Oneapi-Request-Id: req-example-009
