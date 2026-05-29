@@ -12,3 +12,5 @@ apps/server/data/*.bak.*
 .DS_Store
 npm-debug.log*
 test-results/
+.omo/
+.agent-browser/
