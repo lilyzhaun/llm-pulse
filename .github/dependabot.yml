@@ -3,30 +3,43 @@ updates:
   - package-ecosystem: npm
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
       day: monday
       time: "09:00"
       timezone: Etc/UTC
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 2
     versioning-strategy: increase
     labels:
       - dependencies
       - npm
     groups:
+      npm-production-dependencies:
+        dependency-type: production
+        update-types:
+          - minor
+          - patch
       npm-development-dependencies:
         dependency-type: development
         update-types:
           - minor
           - patch
+    ignore:
+      - dependency-name: typescript
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
-      interval: weekly
+      interval: monthly
       day: monday
       time: "09:30"
       timezone: Etc/UTC
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 1
     labels:
       - dependencies
       - github-actions
+    groups:
+      github-actions-dependencies:
+        patterns:
+          - "*"
