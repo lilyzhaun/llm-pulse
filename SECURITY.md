@@ -4,7 +4,7 @@ LLM Pulse exposes a public, read-only status dashboard for aggregated model avai
 
 ## Supported Versions
 
-This repository is currently maintained from the `master` branch. Security fixes should target the active branch unless a maintainer documents a separate release branch.
+This repository is currently maintained from the `main` branch. Security fixes should target the active branch unless a maintainer documents a separate release branch.
 
 ## Reporting a Vulnerability
 
