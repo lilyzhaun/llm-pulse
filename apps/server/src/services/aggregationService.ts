@@ -76,6 +76,18 @@ export class AggregationService {
       return this.inflightRefresh;
     }
 
+    this.materializeSnapshotFallback(
+      {
+        toEpochSeconds: Math.floor(Date.now() / 1000),
+        generatedAt: nowIso(),
+      },
+      null,
+    );
+
+    if (this.lastSnapshot) {
+      return this.lastSnapshot;
+    }
+
     return this.responseFactory.buildFallbackResponse(
       nowIso(),
       this.lastSnapshot,
@@ -122,6 +134,7 @@ export class AggregationService {
         { error: scrubPgError(error) },
         "Failed to query upstream PostgreSQL for pulse snapshot",
       );
+      this.materializeSnapshotFallback(window, durationMs);
       const fallback = this.responseFactory.buildFallbackResponse(
         window.generatedAt,
         this.lastSnapshot,
@@ -216,6 +229,35 @@ export class AggregationService {
       toEpochSeconds,
       generatedAt: new Date(toEpochSeconds * 1000).toISOString(),
     };
+  }
+
+  private materializeSnapshotFallback(
+    window: QueryWindow,
+    durationMs: number | null,
+  ): void {
+    if (this.lastSnapshot) {
+      return;
+    }
+
+    if (!this.snapshotState.shouldUseSnapshotPath()) {
+      return;
+    }
+
+    const store = this.snapshotState.getStore();
+    if (!store) {
+      return;
+    }
+
+    this.lastSnapshot = buildSnapshotAvailabilityResponse(
+      store.readSnapshot(),
+      window,
+      {
+        kind: "memory-snapshot",
+        lastQueryAt: window.generatedAt,
+        lastQueryDurationMs: durationMs,
+        lastErrorMessage: this.queryState.getDataSourceBase().lastErrorMessage,
+      },
+    );
   }
 }
 

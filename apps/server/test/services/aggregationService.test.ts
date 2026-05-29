@@ -224,6 +224,25 @@ describe("AggregationService", () => {
     expect(response.dataSource?.kind).toBe("memory-snapshot");
   });
 
+  it("serves ready snapshot data instead of empty response when snapshot refresh fails before any successful refresh", async () => {
+    const service = new AggregationService();
+    service.configureSnapshotStore(createReadySnapshotStoreLike());
+    mockSnapshotRefresh.refreshIncremental.mockRejectedValue(
+      new Error("snapshot refresh failed"),
+    );
+
+    const response = await service.refresh();
+
+    expect(mockMetrics.incrementSnapshotErrors).toHaveBeenCalledWith("refresh");
+    expect(response.dataSource).toMatchObject({
+      kind: "memory-snapshot",
+      lastErrorMessage: "snapshot refresh failed",
+    });
+    expect(response.models).toHaveLength(1);
+    expect(response.models[0]?.modelName).toBe("gpt-4o-mini");
+    expect(response.summary.totalModels).toBe(1);
+  });
+
   it("uses upstream SQL path when snapshot store is configured but not ready", async () => {
     mockSuccessfulQuery();
     const service = new AggregationService();
@@ -401,6 +420,23 @@ describe("AggregationService", () => {
       models: [],
     });
     expect(mockUpstreamDb.getModelAggregates).not.toHaveBeenCalled();
+  });
+
+  it("serves ready snapshot data to readers after startup query failure before any refresh", async () => {
+    const service = new AggregationService();
+    service.configureSnapshotStore(createReadySnapshotStoreLike());
+    service.markStartupQueryFailure(
+      new Error("Upstream PostgreSQL sanity ping failed"),
+    );
+
+    const response = await service.getAggregatedPulse();
+
+    expect(response.dataSource).toMatchObject({
+      kind: "memory-snapshot",
+      lastErrorMessage: "Upstream PostgreSQL sanity ping failed",
+    });
+    expect(response.summary.totalModels).toBe(1);
+    expect(response.models[0]?.modelName).toBe("gpt-4o-mini");
   });
 
   it("deduplicates concurrent refresh calls into a single upstream query", async () => {
