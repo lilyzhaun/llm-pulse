@@ -83,6 +83,8 @@ PULSE_BOOTSTRAP_BATCH_SIZE=1000
 
 安全提醒：不要提交真实 `DATABASE_URL`、生产 `.env`、原始用户日志或数据库排障输出。生产环境建议通过 systemd、容器平台或密钥管理系统注入 `DATABASE_URL`、`BFF_BIND_HOST`、`PORT` 或 `BFF_PORT` 等变量，并把环境文件权限限制为仅服务运行用户可读。非容器生产部署建议保留 `BFF_BIND_HOST=127.0.0.1`，由 Nginx 从本机反向代理访问；只有容器内端口发布需要使用 `0.0.0.0`。
 
+额外运维建议：如果 BFF 运行在宿主机、上游 PostgreSQL 运行在 Docker 中，不要把 `DATABASE_URL` 的 host 写死为容器 IP（例如 `172.x.x.x`）。容器重建后 IP 可能漂移，导致仪表盘静默回退到旧 snapshot。优先使用稳定的宿主机入口、反向代理、固定网络别名解析方案，或其他可持久寻址方式。
+
 ## Development
 
 从仓库根目录启动前后端开发服务：
