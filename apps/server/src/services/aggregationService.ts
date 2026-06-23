@@ -19,6 +19,7 @@ import {
   getChannelAggregates,
   getHeartbeatBuckets,
   getModelAggregates,
+  getSystemName,
   scrubPgError,
 } from "./upstreamDb/index.js";
 import { upstreamPool } from "./upstreamDb/pool.js";
@@ -46,6 +47,7 @@ export class AggregationService {
   private readonly queryState = new PulseQueryState();
   private readonly snapshotState = new PulseSnapshotState(env.snapshotEnabled);
   private readonly responseFactory = new PulseResponseFactory();
+  private cachedSystemName: string | null = null;
 
   configureSnapshotStore(store: SnapshotStore | null): void {
     this.snapshotState.configureSnapshotStore(store);
@@ -76,7 +78,7 @@ export class AggregationService {
       return this.inflightRefresh;
     }
 
-    this.materializeSnapshotFallback(
+    await this.materializeSnapshotFallback(
       {
         toEpochSeconds: Math.floor(Date.now() / 1000),
         generatedAt: nowIso(),
@@ -88,11 +90,16 @@ export class AggregationService {
       return this.lastSnapshot;
     }
 
-    return this.responseFactory.buildFallbackResponse(
+    const fallback = this.responseFactory.buildFallbackResponse(
       nowIso(),
       this.lastSnapshot,
       this.queryState.getDataSourceBase(),
     );
+
+    return {
+      ...fallback,
+      dashboardTitle: this.buildDashboardTitle(),
+    };
   }
 
   async refresh(): Promise<AvailabilityResponse> {
@@ -134,14 +141,17 @@ export class AggregationService {
         { error: scrubPgError(error) },
         "Failed to query upstream PostgreSQL for pulse snapshot",
       );
-      this.materializeSnapshotFallback(window, durationMs);
+      await this.materializeSnapshotFallback(window, durationMs);
       const fallback = this.responseFactory.buildFallbackResponse(
         window.generatedAt,
         this.lastSnapshot,
         this.queryState.getDataSourceBase(),
       );
-      this.lastSnapshot = fallback;
-      return fallback;
+      this.lastSnapshot = {
+        ...fallback,
+        dashboardTitle: this.buildDashboardTitle(),
+      };
+      return this.lastSnapshot;
     } finally {
       observeAggregationDurationSeconds(elapsedSecondsSince(queryStartedAt));
     }
@@ -168,18 +178,28 @@ export class AggregationService {
       observeSnapshotRefreshDurationSeconds(durationMs / 1000);
       this.snapshotState.markSnapshotRefreshResult(true);
 
+      const systemName = await this.fetchSystemName();
+      if (systemName) {
+        this.cachedSystemName = systemName;
+      }
+
+      const snapshotResponse = buildSnapshotAvailabilityResponse(
+        store.readSnapshot(),
+        window,
+        {
+          kind: "upstream-postgres",
+          lastQueryAt: window.generatedAt,
+          lastQueryDurationMs: durationMs,
+          lastErrorMessage: null,
+        },
+      );
+
       return {
         durationMs,
-        response: buildSnapshotAvailabilityResponse(
-          store.readSnapshot(),
-          window,
-          {
-            kind: "upstream-postgres",
-            lastQueryAt: window.generatedAt,
-            lastQueryDurationMs: durationMs,
-            lastErrorMessage: null,
-          },
-        ),
+        response: {
+          ...snapshotResponse,
+          dashboardTitle: this.buildDashboardTitle(),
+        },
       };
     } catch (error) {
       incrementSnapshotErrors("refresh");
@@ -196,30 +216,54 @@ export class AggregationService {
     window: QueryWindow,
     queryStartedAt: bigint,
   ): Promise<RefreshOutcome> {
-    const [models, channels, heartbeatBuckets] = await Promise.all([
+    const [models, channels, heartbeatBuckets, systemName] = await Promise.all([
       getModelAggregates(window.toEpochSeconds),
       getChannelAggregates(window.toEpochSeconds),
       getHeartbeatBuckets(window.toEpochSeconds),
+      this.fetchSystemName(),
     ]);
+
+    if (systemName) {
+      this.cachedSystemName = systemName;
+    }
 
     const durationMs = elapsedMsSince(queryStartedAt);
     observeUpstreamDbQueryDurationSeconds(durationMs / 1000);
 
+    const response = this.responseFactory.buildAvailabilityResponse(
+      models,
+      channels,
+      heartbeatBuckets,
+      window,
+      {
+        kind: "upstream-postgres",
+        lastQueryAt: window.generatedAt,
+        lastQueryDurationMs: durationMs,
+        lastErrorMessage: null,
+      },
+    );
+
     return {
       durationMs,
-      response: this.responseFactory.buildAvailabilityResponse(
-        models,
-        channels,
-        heartbeatBuckets,
-        window,
-        {
-          kind: "upstream-postgres",
-          lastQueryAt: window.generatedAt,
-          lastQueryDurationMs: durationMs,
-          lastErrorMessage: null,
-        },
-      ),
+      response: {
+        ...response,
+        dashboardTitle: this.buildDashboardTitle(),
+      },
     };
+  }
+
+  private async fetchSystemName(): Promise<string | null> {
+    try {
+      return await getSystemName(upstreamPool);
+    } catch {
+      return null;
+    }
+  }
+
+  private buildDashboardTitle(): string {
+    return this.cachedSystemName
+      ? `${this.cachedSystemName}状态监控`
+      : "状态监控";
   }
 
   private buildQueryWindow(): QueryWindow {
@@ -231,10 +275,10 @@ export class AggregationService {
     };
   }
 
-  private materializeSnapshotFallback(
+  private async materializeSnapshotFallback(
     window: QueryWindow,
     durationMs: number | null,
-  ): void {
+  ): Promise<void> {
     if (this.lastSnapshot) {
       return;
     }
@@ -248,16 +292,24 @@ export class AggregationService {
       return;
     }
 
-    this.lastSnapshot = buildSnapshotAvailabilityResponse(
-      store.readSnapshot(),
-      window,
-      {
-        kind: "memory-snapshot",
-        lastQueryAt: window.generatedAt,
-        lastQueryDurationMs: durationMs,
-        lastErrorMessage: this.queryState.getDataSourceBase().lastErrorMessage,
-      },
-    );
+    const systemName = await this.fetchSystemName();
+    if (systemName) {
+      this.cachedSystemName = systemName;
+    }
+
+    this.lastSnapshot = {
+      ...buildSnapshotAvailabilityResponse(
+        store.readSnapshot(),
+        window,
+        {
+          kind: "memory-snapshot",
+          lastQueryAt: window.generatedAt,
+          lastQueryDurationMs: durationMs,
+          lastErrorMessage: this.queryState.getDataSourceBase().lastErrorMessage,
+        },
+      ),
+      dashboardTitle: this.buildDashboardTitle(),
+    };
   }
 }
 

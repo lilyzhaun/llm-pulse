@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from "@testing-library/react";
 import type { AvailabilityResponse } from "@llm-pulse/shared";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "./Toolbar";
 
@@ -47,9 +47,7 @@ describe("Toolbar", () => {
       />,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "dammapi状态监控" }),
-    ).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "状态监控" })).not.toBeNull();
     expect(screen.getByText("12")).not.toBeNull();
     expect(screen.getByText("近 45 分钟")).not.toBeNull();
 

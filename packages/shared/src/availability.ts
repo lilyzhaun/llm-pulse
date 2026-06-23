@@ -6,6 +6,7 @@ export type AvailabilityStatus =
 
 export interface AvailabilityResponse {
   generatedAt: string;
+  dashboardTitle?: string;
   dataSource?: AvailabilityDataSource;
   window: AvailabilityWindow;
   heartbeat: HeartbeatWindow;

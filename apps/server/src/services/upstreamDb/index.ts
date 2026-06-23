@@ -26,3 +26,7 @@ export {
   type ModelAggregateRow,
   type UpstreamQueryClient,
 } from "./queries/modelAggregates.js";
+export {
+  getSystemName,
+  SYSTEM_NAME_SQL,
+} from "./queries/systemName.js";

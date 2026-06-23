@@ -45,7 +45,7 @@ export function Toolbar({
     <section className="toolbar">
       <div>
         <p className="toolbar__eyebrow">Model 状态</p>
-        <h1>dammapi状态监控</h1>
+        <h1>{snapshot.dashboardTitle ?? "状态监控"}</h1>
         <p className="toolbar__description">
           每模型最近 60 个 1 分钟窗口的可用性。
         </p>

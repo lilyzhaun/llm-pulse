@@ -133,10 +133,8 @@ test("Dashboard smoke 场景可加载并显示标题", async ({ page }) => {
 
   await page.goto("./");
 
-  await expect(page).toHaveTitle(/dammapi状态监控/);
-  await expect(
-    page.getByRole("heading", { name: "dammapi状态监控" }),
-  ).toBeVisible();
+  await expect(page).toHaveTitle(/状态监控/);
+  await expect(page.getByRole("heading", { name: "状态监控" })).toBeVisible();
   await expect(page.getByText("smoke-model")).toBeVisible();
   await page.getByRole("button", { name: /smoke-model/i }).click();
   await expect(page.getByText("输入 tokens", { exact: true })).toBeVisible();

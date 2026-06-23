@@ -393,6 +393,7 @@ describe("AggregationService", () => {
 
     expect(response).toEqual({
       generatedAt: GENERATED_AT,
+      dashboardTitle: "状态监控",
       dataSource: {
         kind: "empty",
         lastQueryAt: null,

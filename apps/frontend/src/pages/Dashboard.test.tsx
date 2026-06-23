@@ -1,8 +1,8 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type {
   AvailabilityResponse,
   ModelAvailability,
 } from "@llm-pulse/shared";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HeartbeatSlotProvider } from "../contexts/HeartbeatSlotContext";
 import { getAvailabilitySnapshot } from "../lib/api";
@@ -147,7 +147,7 @@ describe("Dashboard", () => {
     renderDashboard();
 
     expect(
-      await screen.findByRole("heading", { name: "dammapi状态监控" }),
+      await screen.findByRole("heading", { name: "状态监控" }),
     ).not.toBeNull();
     expect(screen.getByText("Models")).not.toBeNull();
     expect(screen.getByText("0")).not.toBeNull();
@@ -166,9 +166,7 @@ describe("Dashboard", () => {
     expect(
       await screen.findByRole("heading", { name: "gpt-4.1" }),
     ).not.toBeNull();
-    expect(
-      screen.getByRole("heading", { name: "dammapi状态监控" }),
-    ).not.toBeNull();
+    expect(screen.getByRole("heading", { name: "状态监控" })).not.toBeNull();
     expect(screen.getByText("按最近 Request 排序")).not.toBeNull();
     expect(
       screen
