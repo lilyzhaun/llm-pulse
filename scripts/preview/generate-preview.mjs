@@ -11,56 +11,51 @@ const frontendDir = resolve(repoRoot, "apps/frontend");
 const previewsDir = resolve(repoRoot, "previews");
 const tmpDir = resolve(repoRoot, "scripts/preview/.tmp");
 
-const PREVIEW_PORT = 43150;
-const BASE_URL = `http://127.0.0.1:${PREVIEW_PORT}/status/`;
+const PORT = 43151;
+const BASE = `http://127.0.0.1:${PORT}/status/`;
 
-const DESKTOP = { width: 2560, height: 1440 };
+// Strict 16:9 dimensions
+const DESKTOP = { w: 2560, h: 1440 };       // 16:9 landscape
+const MOBILE  = { w: 693, h: 390 };          // 16:9 landscape (phone on its side)
 
-const pulseSnapshot = {
+const snap = {
   generatedAt: "2026-06-23T08:00:00.000Z",
   dataSource: { kind: "upstream-postgres", lastQueryAt: "2026-06-23T08:00:00.000Z", lastQueryDurationMs: 18, lastErrorMessage: null },
   window: { seconds: 3600, from: "2026-06-23T07:00:00.000Z", to: "2026-06-23T08:00:00.000Z" },
   heartbeat: { bucketSeconds: 60, bucketCount: 60, from: "2026-06-23T07:00:00.000Z", to: "2026-06-23T08:00:00.000Z" },
-  summary: { totalModels: 6, availableModels: 4, degradedModels: 1, unavailableModels: 1, unknownModels: 0 },
+  summary: { totalModels: 4, availableModels: 3, degradedModels: 1, unavailableModels: 0, unknownModels: 0 },
   models: [
-    buildModel("gpt-4.1", "available", 0.95, 1.2, 1280, [
-      ...beatSeq("available", 40, 3, 12, 1.0, 1.5), ...beatSeq("degraded", 8, 2, 6, 0.7, 2.1), ...beatSeq("available", 12, 3, 10, 0.95, 1.3),
+    m("gpt-5", "available", 0.99, 0.8, 3200, [
+      ...b("available", 52, 5, 18, 1.0, 0.7), ...b("available", 8, 3, 10, 0.95, 0.9),
     ]),
-    buildModel("claude-3.5-sonnet", "available", 0.98, 0.9, 2400, [
-      ...beatSeq("available", 55, 4, 15, 0.98, 0.9), ...beatSeq("available", 5, 2, 8, 0.9, 1.1),
+    m("claude-sonnet-4.5", "available", 0.97, 1.1, 1800, [
+      ...b("available", 48, 4, 12, 0.98, 1.0), ...b("degraded", 6, 2, 5, 0.7, 1.8), ...b("available", 6, 3, 8, 0.95, 1.1),
     ]),
-    buildModel("gemini-1.5-pro", "degraded", 0.72, 2.8, 860, [
-      ...beatSeq("available", 20, 3, 10, 0.95, 1.2), ...beatSeq("degraded", 15, 2, 6, 0.6, 2.8), ...beatSeq("unavailable", 5, 0, 0, 0, null), ...beatSeq("available", 20, 3, 9, 0.9, 1.4),
+    m("gemini-2.5-pro", "degraded", 0.82, 2.4, 960, [
+      ...b("available", 30, 3, 10, 0.95, 1.2), ...b("degraded", 20, 2, 6, 0.6, 2.8), ...b("available", 10, 3, 7, 0.9, 1.4),
     ]),
-    buildModel("deepseek-v3", "available", 0.91, 1.6, 540, [
-      ...beatSeq("available", 50, 2, 8, 0.92, 1.6), ...beatSeq("degraded", 10, 1, 4, 0.7, 2.2),
-    ]),
-    buildModel("qwen-max", "unavailable", 0.0, null, 0, [
-      ...beatSeq("unavailable", 60, 0, 0, 0, null),
-    ]),
-    buildModel("llama-3.1-70b", "available", 0.88, 1.1, 420, [
-      ...beatSeq("available", 45, 1, 6, 0.88, 1.1), ...beatSeq("degraded", 15, 1, 3, 0.6, 1.8),
+    m("deepseek-r2", "available", 0.94, 1.4, 720, [
+      ...b("available", 50, 3, 9, 0.93, 1.4), ...b("degraded", 10, 1, 4, 0.7, 2.0),
     ]),
   ],
 };
 
-function buildModel(name, status, successRate, latency, total, beats) {
+function m(name, status, sr, lat, total, beats) {
   return {
     modelName: name, status,
-    successCount: Math.round(total * successRate), errorCount: Math.round(total * (1 - successRate)),
-    totalCount: total, successRate, averageLatencySeconds: latency,
+    successCount: Math.round(total * sr), errorCount: Math.round(total * (1 - sr)),
+    totalCount: total, successRate: sr, averageLatencySeconds: lat,
     lastSeenAt: "2026-06-23T07:59:00.000Z",
-    tokens: { input: Math.round(total * 320), cacheInput: Math.round(total * 45), output: Math.round(total * 180), total: Math.round(total * 545) },
-    cost: { quota: Math.round(total * 0.12 * 100) / 100 },
-    rpm: { average: Math.round(total / 60 * 10) / 10, peak: Math.round(total / 60 * 30) / 10 },
-    tpm: { average: Math.round(total * 545 / 60), peak: Math.round(total * 545 / 60 * 2.5) },
+    tokens: { input: Math.round(total * 350), cacheInput: Math.round(total * 80), output: Math.round(total * 120), total: Math.round(total * 550) },
+    cost: { quota: Math.round(total * 0.15 * 100) / 100 },
+    rpm: { average: Math.round(total / 60 * 10) / 10, peak: Math.round(total / 60 * 35) / 10 },
+    tpm: { average: Math.round(total * 550 / 60), peak: Math.round(total * 550 / 60 * 3) },
     heartbeat: {
-      healthyBuckets: beats.filter((b) => b.status === "available").length,
-      degradedBuckets: beats.filter((b) => b.status === "degraded").length,
-      unavailableBuckets: beats.filter((b) => b.status === "unavailable").length,
-      unknownBuckets: beats.filter((b) => b.status === "unknown").length,
-      observedBuckets: beats.length,
-      availabilityRate: beats.length ? beats.filter((b) => b.status === "available").length / beats.length : null,
+      healthyBuckets: beats.filter((x) => x.status === "available").length,
+      degradedBuckets: beats.filter((x) => x.status === "degraded").length,
+      unavailableBuckets: beats.filter((x) => x.status === "unavailable").length,
+      unknownBuckets: 0, observedBuckets: beats.length,
+      availabilityRate: beats.filter((x) => x.status === "available").length / beats.length,
       lastStatus: beats[beats.length - 1]?.status ?? "unknown",
       lastBeatAt: "2026-06-23T07:59:00.000Z",
     },
@@ -68,149 +63,136 @@ function buildModel(name, status, successRate, latency, total, beats) {
   };
 }
 
-function beatSeq(status, count, minReq, maxReq, successRate, latency) {
+function b(status, count, minR, maxR, sr, lat) {
   const out = [];
   for (let i = 0; i < count; i++) {
-    const req = minReq + Math.floor(Math.random() * (maxReq - minReq + 1));
-    const sc = Math.round(req * successRate);
-    out.push({ start: `2026-06-23T07:${String(59 - i).padStart(2, "0")}:00.000Z`, end: `2026-06-23T08:00:00.000Z`, status, totalCount: req, successCount: sc, errorCount: req - sc, successRate, averageLatencySeconds: latency });
+    const r = minR + Math.floor(Math.random() * (maxR - minR + 1));
+    const sc = Math.round(r * sr);
+    out.push({
+      start: `2026-06-23T07:${String(59 - i).padStart(2, "0")}:00.000Z`,
+      end: `2026-06-23T08:00:00.000Z`,
+      status,
+      totalCount: r,
+      successCount: sc,
+      errorCount: r - sc,
+      successRate: sr,
+      averageLatencySeconds: lat ?? 0,
+    });
   }
   return out;
 }
 
-async function startPreviewServer() {
-  const proc = spawn("npx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(PREVIEW_PORT), "--strictPort"], { cwd: frontendDir, stdio: "pipe" });
-  await waitForServer(BASE_URL, 15000);
-  return proc;
+async function startServer() {
+  const p = spawn("npx", ["vite", "preview", "--host", "127.0.0.1", "--port", String(PORT), "--strictPort"], { cwd: frontendDir, stdio: "pipe" });
+  await wait(BASE, 15000);
+  return p;
 }
 
-function waitForServer(url, timeoutMs) {
-  const start = Date.now();
-  return new Promise((resolve, reject) => {
-    function check() {
-      if (Date.now() - start > timeoutMs) { reject(new Error(`Server not ready at ${url} within ${timeoutMs}ms`)); return; }
-      fetch(url).then(() => resolve()).catch(() => setTimeout(check, 200));
-    }
-    check();
+function wait(url, ms) {
+  const s = Date.now();
+  return new Promise((ok, no) => {
+    const c = () => { if (Date.now() - s > ms) { no(new Error("timeout")); return; } fetch(url).then(() => ok()).catch(() => setTimeout(c, 200)); };
+    c();
   });
 }
 
-async function makePage(browser, theme, viewport) {
-  const context = await browser.newContext({ viewport, deviceScaleFactor: 1 });
-  const page = await context.newPage();
-  await page.route("**/status/api/pulse", async (r) => { await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(pulseSnapshot) }); });
-  await page.goto(BASE_URL, { waitUntil: "networkidle" });
-  await page.waitForSelector(".model-card", { timeout: 8000 });
-  await page.evaluate((t) => { document.documentElement.setAttribute("data-theme", t); }, theme);
-  await page.waitForTimeout(400);
-  return { page, context };
+async function makePage(browser, theme, vp) {
+  const ctx = await browser.newContext({ viewport: vp, deviceScaleFactor: 1 });
+  const pg = await ctx.newPage();
+  await pg.route("**/status/api/pulse", async (r) => {
+    await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(snap) });
+  });
+  await pg.goto(BASE, { waitUntil: "networkidle" });
+  await pg.waitForTimeout(2000);
+  await pg.waitForSelector(".model-card", { timeout: 10000 });
+  await pg.evaluate((t) => document.documentElement.setAttribute("data-theme", t), theme);
+  await pg.waitForTimeout(400);
+  return { pg, ctx };
 }
 
-function b64(path) { return readFileSync(path).toString("base64"); }
+function b64(p) { return readFileSync(p).toString("base64"); }
 
 async function main() {
   if (!existsSync(previewsDir)) mkdirSync(previewsDir, { recursive: true });
   if (!existsSync(tmpDir)) mkdirSync(tmpDir, { recursive: true });
   if (!existsSync(resolve(frontendDir, "dist/index.html"))) { console.error("请先构建前端"); process.exit(1); }
 
-  console.log("启动 vite preview...");
-  const serverProc = await startPreviewServer();
+  console.log("启动服务器...");
+  const srv = await startServer();
   let browser;
   try {
     browser = await chromium.launch();
-    const tmp = (n) => resolve(tmpDir, n);
+    const t = (n) => resolve(tmpDir, n);
     const img = {};
 
-    // Desktop Light — 16:9 clip
+    // Desktop light — 16:9 clip
     console.log("桌面 Light...");
-    const { page: pL, context: cL } = await makePage(browser, "light", { width: DESKTOP.width, height: DESKTOP.height });
-    img.dl = tmp("dl.png");
-    await pL.screenshot({ path: img.dl, clip: { x: 0, y: 0, width: DESKTOP.width, height: DESKTOP.height }, type: "png" });
+    const { pg: pL, ctx: cL } = await makePage(browser, "light", { width: DESKTOP.w, height: DESKTOP.h });
+    img.dl = t("dl.png");
+    await pL.screenshot({ path: img.dl, clip: { x: 0, y: 0, width: DESKTOP.w, height: DESKTOP.h }, type: "png" });
 
-    // Detail: expanded card + toolbar (from light page)
-    console.log("细节截图...");
-    const headers = await pL.$$(".model-card__header");
-    if (headers.length > 0) { await headers[0].click(); await pL.waitForTimeout(600); }
+    // Detail: expand first card
+    const hs = await pL.$$(".model-card__header");
+    if (hs.length) { await hs[0].click(); await pL.waitForTimeout(600); }
+    const ce = await pL.$(".model-card");
+    img.card = t("card.png");
+    if (ce) { const b = await ce.boundingBox(); await pL.screenshot({ path: img.card, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 } }); }
 
-    const cardEl = await pL.$(".model-card");
-    img.card = tmp("card.png");
-    if (cardEl) {
-      const b = await cardEl.boundingBox();
-      await pL.screenshot({ path: img.card, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 }, type: "png" });
-    }
+    const te = await pL.$(".toolbar");
+    img.tb = t("tb.png");
+    if (te) { const b = await te.boundingBox(); await pL.screenshot({ path: img.tb, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 } }); }
 
-    const tbEl = await pL.$(".toolbar");
-    img.toolbar = tmp("tb.png");
-    if (tbEl) {
-      const b = await tbEl.boundingBox();
-      await pL.screenshot({ path: img.toolbar, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 }, type: "png" });
-    }
+    const be = await pL.$(".heartbeat-board");
+    img.beat = t("beat.png");
+    if (be) { const b = await be.boundingBox(); await pL.screenshot({ path: img.beat, clip: { x: Math.max(0, b.x - 14), y: Math.max(0, b.y - 14), width: b.width + 28, height: b.height + 28 } }); }
 
     await cL.close();
 
-    // Desktop Dark — 16:9 clip
+    // Desktop dark
     console.log("桌面 Dark...");
-    const { page: pD, context: cD } = await makePage(browser, "dark", { width: DESKTOP.width, height: DESKTOP.height });
-    img.dd = tmp("dd.png");
-    await pD.screenshot({ path: img.dd, clip: { x: 0, y: 0, width: DESKTOP.width, height: DESKTOP.height }, type: "png" });
-
-    // Detail: heartbeat bars from dark page
-    const dHeaders = await pD.$$(".model-card__header");
-    if (dHeaders.length > 0) { await dHeaders[0].click(); await pD.waitForTimeout(600); }
-    const beatEl = await pD.$(".heartbeat-board");
-    img.beat = tmp("beat.png");
-    if (beatEl) {
-      const b = await beatEl.boundingBox();
-      await pD.screenshot({ path: img.beat, clip: { x: Math.max(0, b.x - 14), y: Math.max(0, b.y - 14), width: b.width + 28, height: b.height + 28 }, type: "png" });
-    }
-
+    const { pg: pD, ctx: cD } = await makePage(browser, "dark", { width: DESKTOP.w, height: DESKTOP.h });
+    img.dd = t("dd.png");
+    await pD.screenshot({ path: img.dd, clip: { x: 0, y: 0, width: DESKTOP.w, height: DESKTOP.h }, type: "png" });
     await cD.close();
 
-    // Mobile — 390px wide, clip to 16:9 (390 × 219 for landscape) or 9:16 (390 × 693 portrait)
-    // User says 16:9. Phone screen 16:9 = landscape. But phone is held portrait...
-    // User said "横屏或竖屏，屏幕比例也必须是16:9". So we use 16:9 portrait = 9:16 w:h
-    // 390 * 16/9 = 693
-    const MW = 390, MH = Math.round(390 * 16 / 9); // 693
-
+    // Mobile 16:9 landscape — viewport 693x390
     console.log("移动 Light...");
-    const { page: pML, context: cML } = await makePage(browser, "light", { width: MW, height: MH });
-    img.ml = tmp("ml.png");
-    await pML.screenshot({ path: img.ml, clip: { x: 0, y: 0, width: MW, height: MH }, type: "png" });
+    const { pg: pML, ctx: cML } = await makePage(browser, "light", { width: MOBILE.w, height: MOBILE.h });
+    img.ml = t("ml.png");
+    await pML.screenshot({ path: img.ml, clip: { x: 0, y: 0, width: MOBILE.w, height: MOBILE.h }, type: "png" });
     await cML.close();
 
     console.log("移动 Dark...");
-    const { page: pMD2, context: cMD } = await makePage(browser, "dark", { width: MW, height: MH });
-    img.md = tmp("md.png");
-    await pMD2.screenshot({ path: img.md, clip: { x: 0, y: 0, width: MW, height: MH }, type: "png" });
+    const { pg: pMD, ctx: cMD } = await makePage(browser, "dark", { width: MOBILE.w, height: MOBILE.h });
+    img.md = t("md.png");
+    await pMD.screenshot({ path: img.md, clip: { x: 0, y: 0, width: MOBILE.w, height: MOBILE.h }, type: "png" });
     await cMD.close();
 
-    // Compose poster
+    // Compose
     console.log("合成海报...");
-    const html = posterHtml({
+    const html = poster({
       dl: b64(img.dl), dd: b64(img.dd),
       ml: b64(img.ml), md: b64(img.md),
-      card: b64(img.card), toolbar: b64(img.toolbar), beat: b64(img.beat),
+      card: b64(img.card), tb: b64(img.tb), beat: b64(img.beat),
     });
-    const htmlPath = resolve(tmpDir, "poster.html");
-    writeFileSync(htmlPath, html);
-
-    const cc = await browser.newContext({ viewport: { width: 2400, height: 1600 }, deviceScaleFactor: 1 });
+    const hp = resolve(tmpDir, "poster.html");
+    writeFileSync(hp, html);
+    const cc = await browser.newContext({ viewport: { width: 2400, height: 1800 }, deviceScaleFactor: 1 });
     const cp = await cc.newPage();
-    await cp.goto(`file://${htmlPath}`, { waitUntil: "networkidle" });
+    await cp.goto(`file://${hp}`, { waitUntil: "networkidle" });
     await cp.waitForTimeout(800);
-    const finalPath = resolve(previewsDir, "desktop-mobile-preview.png");
-    await cp.screenshot({ path: finalPath, fullPage: true, type: "png" });
+    const out = resolve(previewsDir, "desktop-mobile-preview.png");
+    await cp.screenshot({ path: out, fullPage: true, type: "png" });
     await cc.close();
-
-    console.log(`\n海报已生成: ${finalPath}`);
+    console.log(`\n海报: ${out}`);
   } finally {
     if (browser) await browser.close();
-    serverProc.kill("SIGTERM");
+    srv.kill("SIGTERM");
     try { rmSync(tmpDir, { recursive: true, force: true }); } catch {}
   }
 }
 
-function posterHtml(d) {
+function poster(d) {
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -219,156 +201,166 @@ function posterHtml(d) {
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{background:#f5f4ef;font-family:"Poppins",Arial,sans-serif;color:#141413;width:2400px;overflow:hidden}
-.poster{position:relative;padding:80px 80px 72px;background:radial-gradient(ellipse 1400px 700px at 80% 0%,rgba(217,119,87,0.04),transparent 55%),radial-gradient(ellipse 1000px 600px at 10% 100%,rgba(106,155,204,0.03),transparent 50%),linear-gradient(180deg,#faf9f5 0%,#f5f4ef 100%)}
-.poster::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(176,174,165,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(176,174,165,0.04) 1px,transparent 1px);background-size:56px 56px;pointer-events:none;mask-image:linear-gradient(180deg,rgba(0,0,0,0.5),transparent 85%)}
+.poster{position:relative;padding:88px 96px 72px;background:radial-gradient(ellipse 1600px 800px at 75% 0%,rgba(217,119,87,0.05),transparent 55%),radial-gradient(ellipse 1200px 700px at 15% 100%,rgba(106,155,204,0.035),transparent 50%),linear-gradient(180deg,#faf9f5 0%,#f2f1ec 100%)}
+.poster::before{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(176,174,165,0.035) 1px,transparent 1px),linear-gradient(90deg,rgba(176,174,165,0.035) 1px,transparent 1px);background-size:64px 64px;pointer-events:none;mask-image:linear-gradient(180deg,rgba(0,0,0,0.4),transparent 80%)}
 
-.header{position:relative;display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:56px}
-.header-left{display:flex;flex-direction:column;gap:10px}
-.brand-mark{display:flex;align-items:center;gap:10px}
-.brand-dot{width:10px;height:10px;border-radius:50%;background:#d97757;box-shadow:0 0 10px rgba(217,119,87,0.3)}
-.brand-name{font-size:14px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:#d97757}
-.title{font-size:60px;font-weight:700;line-height:1.05;letter-spacing:-0.02em;color:#141413}
-.title .accent{color:#d97757}
-.subtitle{font-family:"Lora",Georgia,serif;font-size:18px;color:#6f6962;max-width:500px;margin-top:4px;line-height:1.45}
-.header-right{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
-.tag-row{display:flex;gap:10px}
-.tag{font-size:12px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:7px 14px;border-radius:999px;color:#4c4944;background:rgba(176,174,165,0.08);border:1px solid rgba(176,174,165,0.15)}
-.tag--accent{color:#d97757;background:rgba(217,119,87,0.06);border-color:rgba(217,119,87,0.2)}
-.version{font-size:12px;color:#b0aea5;letter-spacing:0.06em}
+/* Header */
+.hdr{position:relative;display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:64px}
+.hdr-l{display:flex;flex-direction:column;gap:12px}
+.bm{display:flex;align-items:center;gap:10px}
+.bd{width:11px;height:11px;border-radius:50%;background:#d97757;box-shadow:0 0 12px rgba(217,119,87,0.35)}
+.bn{font-size:15px;font-weight:500;letter-spacing:0.16em;text-transform:uppercase;color:#d97757}
+.ttl{font-size:64px;font-weight:700;line-height:1.04;letter-spacing:-0.02em;color:#141413}
+.ttl .a{color:#d97757}
+.sub{font-family:"Lora",Georgia,serif;font-size:19px;color:#6f6962;max-width:520px;margin-top:6px;line-height:1.45}
+.hdr-r{display:flex;flex-direction:column;align-items:flex-end;gap:12px}
+.tags{display:flex;gap:10px}
+.tg{font-size:12px;font-weight:500;letter-spacing:0.1em;text-transform:uppercase;padding:8px 16px;border-radius:999px;color:#4c4944;background:rgba(176,174,165,0.06);border:1px solid rgba(176,174,165,0.14)}
+.tg-a{color:#d97757;background:rgba(217,119,87,0.05);border-color:rgba(217,119,87,0.18)}
+.ver{font-size:12px;color:#b0aea5;letter-spacing:0.06em}
 
-.slabel{font-size:13px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#b0aea5;margin-bottom:20px;display:flex;align-items:center;gap:12px}
-.slabel::after{content:"";flex:1;height:1px;background:rgba(176,174,165,0.15)}
+/* Section label */
+.sl{font-size:13px;font-weight:600;letter-spacing:0.14em;text-transform:uppercase;color:#b0aea5;margin-bottom:24px;display:flex;align-items:center;gap:14px}
+.sl::after{content:"";flex:1;height:1px;background:rgba(176,174,165,0.12)}
 
-.row{display:flex;gap:48px;margin-bottom:56px;align-items:flex-start}
+/* Desktop row */
+.drow{display:flex;gap:56px;margin-bottom:72px;align-items:flex-start}
+.dcol{display:flex;flex-direction:column;gap:20px;flex:1}
 
-.monitor{flex-shrink:0;border-radius:16px;background:#e8e6dc;box-shadow:0 0 0 1px rgba(176,174,165,0.2),0 2px 0 0 rgba(176,174,165,0.1),0 30px 70px rgba(20,20,19,0.08),0 12px 30px rgba(20,20,19,0.04);overflow:hidden;position:relative}
-.monitor-bar{display:flex;align-items:center;gap:8px;padding:12px 16px;background:#e8e6dc;border-bottom:1px solid rgba(176,174,165,0.15)}
-.traffic{display:flex;gap:7px}
-.traffic span{width:12px;height:12px;border-radius:50%;display:block}
-.traffic span:nth-child(1){background:#d97757;opacity:.7}
-.traffic span:nth-child(2){background:#b0aea5;opacity:.4}
-.traffic span:nth-child(3){background:#788c5d;opacity:.5}
-.murl{flex:1;margin-left:12px;font-size:12px;color:#6f6962;font-family:"Lora",Georgia,serif;background:rgba(176,174,165,0.06);padding:5px 12px;border-radius:6px}
-.monitor-content img{display:block;width:1440px;height:auto}
+.mon{border-radius:16px;background:#e8e6dc;box-shadow:0 0 0 1px rgba(176,174,165,0.18),0 4px 0 0 rgba(176,174,165,0.08),0 32px 80px rgba(20,20,19,0.07),0 12px 32px rgba(20,20,19,0.035);overflow:hidden;position:relative}
+.mon-bar{display:flex;align-items:center;gap:8px;padding:14px 18px;background:#e8e6dc;border-bottom:1px solid rgba(176,174,165,0.14)}
+.tf{display:flex;gap:7px}
+.tf span{width:13px;height:13px;border-radius:50%;display:block}
+.tf span:nth-child(1){background:#d97757;opacity:.7}
+.tf span:nth-child(2){background:#b0aea5;opacity:.4}
+.tf span:nth-child(3){background:#788c5d;opacity:.5}
+.murl{flex:1;margin-left:14px;font-size:13px;color:#6f6962;font-family:"Lora",Georgia,serif;background:rgba(176,174,165,0.05);padding:6px 14px;border-radius:6px}
+.mon-c img{display:block;width:100%;height:auto}
 
-.tbadge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:4px 10px;border-radius:999px;z-index:10}
-.tbadge-l{background:rgba(250,249,245,0.9);color:#141413;border:1px solid rgba(176,174,165,0.15)}
-.tbadge-d{background:rgba(20,20,19,0.85);color:#faf9f5;border:1px solid rgba(250,249,245,0.12)}
+.tbadge{position:absolute;top:12px;right:14px;font-size:11px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:999px;z-index:10}
+.tl{background:rgba(250,249,245,0.92);color:#141413;border:1px solid rgba(176,174,165,0.14)}
+.td{background:rgba(20,20,19,0.88);color:#faf9f5;border:1px solid rgba(250,249,245,0.1)}
 
-.dmeta{margin-top:16px;display:flex;align-items:baseline;gap:10px}
-.dmeta .name{font-size:14px;font-weight:600;color:#141413}
-.dmeta .spec{font-family:"Lora",Georgia,serif;font-size:12px;color:#b0aea5}
+.dmeta{display:flex;align-items:baseline;gap:10px}
+.dmeta .nm{font-size:15px;font-weight:600;color:#141413}
+.dmeta .sp{font-family:"Lora",Georgia,serif;font-size:13px;color:#b0aea5}
 
-.phone{border-radius:36px;background:#e8e6dc;padding:8px;box-shadow:0 0 0 1px rgba(176,174,165,0.2),0 0 0 4px #faf9f5,0 0 0 5px rgba(176,174,165,0.12),0 30px 60px rgba(20,20,19,0.06);position:relative}
-.phone-notch{position:relative;height:18px}
-.phone-notch::after{content:"";position:absolute;left:50%;transform:translateX(-50%);top:-6px;width:90px;height:18px;border-radius:0 0 12px 12px;background:#faf9f5}
-.phone-screen{border-radius:28px;overflow:hidden;line-height:0;position:relative}
-.phone-screen img{display:block;width:390px;height:auto}
+/* Mobile row — 16:9 landscape phones */
+.mrow{display:flex;gap:56px;margin-bottom:72px;align-items:flex-start}
+.mcol{display:flex;flex-direction:column;gap:20px}
 
-.prow{display:flex;gap:32px;align-items:flex-start}
+.ph{border-radius:24px;background:#d8d6cc;padding:10px;box-shadow:0 0 0 1px rgba(176,174,165,0.2),0 0 0 5px #faf9f5,0 0 0 6px rgba(176,174,165,0.1),0 32px 64px rgba(20,20,19,0.06);position:relative;overflow:hidden}
+.ph-c{border-radius:16px;overflow:hidden;line-height:0;position:relative}
+.ph-c img{display:block;width:100%;height:auto}
 
-.detail-row{display:flex;gap:32px;margin-bottom:48px}
-.dcard{flex:1;border-radius:20px;overflow:hidden;background:#fffdf9;box-shadow:0 0 0 1px rgba(176,174,165,0.12),0 16px 40px rgba(20,20,19,0.05);position:relative}
+/* Detail row */
+.detrow{display:flex;gap:40px;margin-bottom:64px}
+.dcard{flex:1;border-radius:24px;overflow:hidden;background:#fffdf9;box-shadow:0 0 0 1px rgba(176,174,165,0.1),0 20px 48px rgba(20,20,19,0.04);position:relative}
 .dcard img{display:block;width:100%;height:auto}
-.dtag{position:absolute;top:14px;left:14px;font-size:10px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:4px 10px;border-radius:999px;background:rgba(20,20,19,0.7);color:#faf9f5;z-index:5}
+.dtag{position:absolute;top:16px;left:16px;font-size:11px;font-weight:600;letter-spacing:0.1em;text-transform:uppercase;padding:5px 12px;border-radius:999px;background:rgba(20,20,19,0.75);color:#faf9f5;z-index:5}
 
-.features{display:flex;border-radius:20px;overflow:hidden;border:1px solid rgba(176,174,165,0.1);margin-bottom:36px}
-.feature{flex:1;padding:24px 28px;display:flex;flex-direction:column;gap:6px;background:rgba(255,253,249,0.6);border-right:1px solid rgba(176,174,165,0.08)}
-.feature:last-child{border-right:0}
-.ficon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin-bottom:4px}
-.feature:nth-child(1) .ficon{background:rgba(217,119,87,0.1);color:#d97757}
-.feature:nth-child(2) .ficon{background:rgba(120,140,93,0.1);color:#788c5d}
-.feature:nth-child(3) .ficon{background:rgba(106,155,204,0.1);color:#6a9bcc}
-.feature:nth-child(4) .ficon{background:rgba(176,174,165,0.1);color:#6f6962}
-.ftitle{font-size:14px;font-weight:600;color:#141413}
-.fdesc{font-family:"Lora",Georgia,serif;font-size:12px;color:#6f6962;line-height:1.4}
+/* Features */
+.feat{display:flex;border-radius:24px;overflow:hidden;border:1px solid rgba(176,174,165,0.08);margin-bottom:40px;background:rgba(255,253,249,0.4)}
+.ft{flex:1;padding:28px 32px;display:flex;flex-direction:column;gap:8px;border-right:1px solid rgba(176,174,165,0.06)}
+.ft:last-child{border-right:0}
+.fi{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:700;margin-bottom:6px}
+.ft:nth-child(1) .fi{background:rgba(217,119,87,0.08);color:#d97757}
+.ft:nth-child(2) .fi{background:rgba(120,140,93,0.08);color:#788c5d}
+.ft:nth-child(3) .fi{background:rgba(106,155,204,0.08);color:#6a9bcc}
+.ft:nth-child(4) .fi{background:rgba(176,174,165,0.08);color:#6f6962}
+.ftt{font-size:15px;font-weight:600;color:#141413}
+.fdd{font-family:"Lora",Georgia,serif;font-size:13px;color:#6f6962;line-height:1.45}
 
-.footer{display:flex;justify-content:space-between;align-items:center}
-.fleft{display:flex;align-items:center;gap:8px;font-size:12px;color:#b0aea5;letter-spacing:0.06em}
-.fleft .brand-dot{width:6px;height:6px}
-.fright{font-family:"Lora",Georgia,serif;font-size:12px;color:#b0aea5}
+/* Footer */
+.ftr{display:flex;justify-content:space-between;align-items:center}
+.ftrl{display:flex;align-items:center;gap:8px;font-size:13px;color:#b0aea5;letter-spacing:0.06em}
+.ftrl .bd{width:7px;height:7px}
+.ftrr{font-family:"Lora",Georgia,serif;font-size:13px;color:#b0aea5}
 </style></head>
 <body>
 <div class="poster">
-  <header class="header">
-    <div class="header-left">
-      <div class="brand-mark"><span class="brand-dot"></span><span class="brand-name">LLM Pulse</span></div>
-      <h1 class="title">Model Availability<br><span class="accent">Snapshot Dashboard</span></h1>
-      <p class="subtitle">Real-time heartbeat monitoring for every LLM endpoint — availability, latency, and token economics at a glance.</p>
+
+  <!-- Header -->
+  <header class="hdr">
+    <div class="hdr-l">
+      <div class="bm"><span class="bd"></span><span class="bn">LLM Pulse</span></div>
+      <h1 class="ttl">Model Availability<br><span class="a">Snapshot Dashboard</span></h1>
+      <p class="sub">Real-time heartbeat monitoring for every LLM endpoint — availability, latency, and token economics at a glance.</p>
     </div>
-    <div class="header-right">
-      <div class="tag-row">
-        <span class="tag tag--accent">Responsive</span>
-        <span class="tag">Mobile-First</span>
-        <span class="tag">Dark / Light</span>
-        <span class="tag">Shadow-Depth UI</span>
+    <div class="hdr-r">
+      <div class="tags">
+        <span class="tg tg-a">Responsive</span>
+        <span class="tg">Mobile-First</span>
+        <span class="tg">Dark / Light</span>
+        <span class="tg">Shadow-Depth UI</span>
       </div>
-      <span class="version">v1.0 · 2026.06</span>
+      <span class="ver">v1.0 · 2026.06</span>
     </div>
   </header>
 
-  <div class="slabel">Desktop · 2K (2560 × 1440 · 16:9)</div>
-  <div class="row">
-    <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="monitor">
-        <span class="tbadge tbadge-l">Light</span>
-        <div class="monitor-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="murl">https://ai.exesim.com/status/</div></div>
-        <div class="monitor-content"><img src="data:image/png;base64,${d.dl}" alt="Desktop Light" /></div>
+  <!-- Desktop -->
+  <div class="sl">Desktop · 2K (2560 × 1440 · 16:9)</div>
+  <div class="drow">
+    <div class="dcol">
+      <div class="mon">
+        <span class="tbadge tl">Light</span>
+        <div class="mon-bar"><div class="tf"><span></span><span></span><span></span></div><div class="murl">https://ai.exesim.com/status/</div></div>
+        <div class="mon-c"><img src="data:image/png;base64,${d.dl}" alt="Desktop Light" /></div>
       </div>
-      <div class="dmeta"><span class="name">Light Theme</span><span class="spec">#faf9f5 · Poppins + Lora · Shadow-border system</span></div>
+      <div class="dmeta"><span class="nm">Light Theme</span><span class="sp">#faf9f5 · Poppins + Lora · Shadow-border system</span></div>
     </div>
-    <div style="display:flex;flex-direction:column;gap:16px">
-      <div class="monitor">
-        <span class="tbadge tbadge-d">Dark</span>
-        <div class="monitor-bar"><div class="traffic"><span></span><span></span><span></span></div><div class="murl">https://ai.exesim.com/status/</div></div>
-        <div class="monitor-content"><img src="data:image/png;base64,${d.dd}" alt="Desktop Dark" /></div>
+    <div class="dcol">
+      <div class="mon">
+        <span class="tbadge td">Dark</span>
+        <div class="mon-bar"><div class="tf"><span></span><span></span><span></span></div><div class="murl">https://ai.exesim.com/status/</div></div>
+        <div class="mon-c"><img src="data:image/png;base64,${d.dd}" alt="Desktop Dark" /></div>
       </div>
-      <div class="dmeta"><span class="name">Dark Theme</span><span class="spec">#141413 · Accent #d97757 · Concentric radii</span></div>
-    </div>
-  </div>
-
-  <div class="slabel">Mobile · 2K (390 × 693 · 9:16 · iPhone)</div>
-  <div class="row">
-    <div class="prow">
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="phone">
-          <span class="tbadge tbadge-l">Light</span>
-          <div class="phone-notch"></div>
-          <div class="phone-screen"><img src="data:image/png;base64,${d.ml}" alt="Mobile Light" /></div>
-        </div>
-        <div class="dmeta"><span class="name">Light Theme</span><span class="spec">375px · Touch · Safe-area</span></div>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div class="phone">
-          <span class="tbadge tbadge-d">Dark</span>
-          <div class="phone-notch"></div>
-          <div class="phone-screen"><img src="data:image/png;base64,${d.md}" alt="Mobile Dark" /></div>
-        </div>
-        <div class="dmeta"><span class="name">Dark Theme</span><span class="spec">375px · Reduced-motion</span></div>
-      </div>
+      <div class="dmeta"><span class="nm">Dark Theme</span><span class="sp">#141413 · Accent #d97757 · Concentric radii</span></div>
     </div>
   </div>
 
-  <div class="slabel">UI Detail · Micro-interactions & Components</div>
-  <div class="detail-row">
-    <div class="dcard"><span class="dtag">Expanded Card</span><img src="data:image/png;base64,${d.card}" alt="Card detail" /></div>
-    <div class="dcard"><span class="dtag">Toolbar</span><img src="data:image/png;base64,${d.toolbar}" alt="Toolbar detail" /></div>
-    <div class="dcard"><span class="dtag">Heartbeat</span><img src="data:image/png;base64,${d.beat}" alt="Heartbeat detail" /></div>
+  <!-- Mobile 16:9 landscape -->
+  <div class="sl">Mobile · 2K (693 × 390 · 16:9 · Landscape)</div>
+  <div class="mrow">
+    <div class="mcol">
+      <div class="ph">
+        <span class="tbadge tl">Light</span>
+        <div class="ph-c"><img src="data:image/png;base64,${d.ml}" alt="Mobile Light" /></div>
+      </div>
+      <div class="dmeta"><span class="nm">Light Theme</span><span class="sp">693px · Touch · Safe-area</span></div>
+    </div>
+    <div class="mcol">
+      <div class="ph">
+        <span class="tbadge td">Dark</span>
+        <div class="ph-c"><img src="data:image/png;base64,${d.md}" alt="Mobile Dark" /></div>
+      </div>
+      <div class="dmeta"><span class="nm">Dark Theme</span><span class="sp">693px · Reduced-motion</span></div>
+    </div>
   </div>
 
-  <div class="features">
-    <div class="feature"><div class="ficon">♥</div><div class="ftitle">Heartbeat Bars</div><div class="fdesc">Per-minute availability timeline with interactive beat inspection.</div></div>
-    <div class="feature"><div class="ficon">⚡</div><div class="ftitle">Live Metrics</div><div class="fdesc">Token usage, RPM / TPM, quota, and latency per model in real time.</div></div>
-    <div class="feature"><div class="ficon">◈</div><div class="ftitle">Shadow-Depth UI</div><div class="fdesc">Layered box-shadow — concentric radii, no hard borders, tactile press.</div></div>
-    <div class="feature"><div class="ficon">☰</div><div class="ftitle">Mobile-First</div><div class="fdesc">375px → 1480px breakpoints with reduced-motion accessibility support.</div></div>
+  <!-- Details -->
+  <div class="sl">UI Detail · Micro-interactions & Components</div>
+  <div class="detrow">
+    <div class="dcard"><span class="dtag">Expanded Card</span><img src="data:image/png;base64,${d.card}" alt="Card" /></div>
+    <div class="dcard"><span class="dtag">Toolbar</span><img src="data:image/png;base64,${d.tb}" alt="Toolbar" /></div>
+    <div class="dcard"><span class="dtag">Heartbeat</span><img src="data:image/png;base64,${d.beat}" alt="Heartbeat" /></div>
   </div>
 
-  <div class="footer">
-    <div class="fleft"><span class="brand-dot"></span><span>LLM PULSE · STATUS DASHBOARD</span></div>
-    <div class="fright">ai.exesim.com/status</div>
+  <!-- Features -->
+  <div class="feat">
+    <div class="ft"><div class="fi">♥</div><div class="ftt">Heartbeat Bars</div><div class="fdd">Per-minute availability timeline with interactive beat inspection.</div></div>
+    <div class="ft"><div class="fi">⚡</div><div class="ftt">Live Metrics</div><div class="fdd">Token usage, RPM / TPM, quota, and latency per model in real time.</div></div>
+    <div class="ft"><div class="fi">◈</div><div class="ftt">Shadow-Depth UI</div><div class="fdd">Layered box-shadow — concentric radii, no hard borders, tactile press.</div></div>
+    <div class="ft"><div class="fi">☰</div><div class="ftt">Mobile-First</div><div class="fdd">375px → 1480px breakpoints with reduced-motion accessibility support.</div></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ftr">
+    <div class="ftrl"><span class="bd"></span><span>LLM PULSE · STATUS DASHBOARD</span></div>
+    <div class="ftrr">ai.exesim.com/status</div>
   </div>
 </div>
 </body></html>`;
 }
 
-main().catch((err) => { console.error("生成海报失败:", err); process.exit(1); });
+main().catch((e) => { console.error(e); process.exit(1); });
