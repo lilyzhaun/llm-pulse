@@ -27,7 +27,24 @@ export function ThemeToggle({
       type="button"
     >
       <span aria-hidden="true" className="theme-toggle__icon">
-        {currentTheme === "dark" ? "☾" : "☼"}
+        <span
+          className={
+            currentTheme === "dark"
+              ? "theme-toggle__icon-active"
+              : "theme-toggle__icon-inactive"
+          }
+        >
+          ☾
+        </span>
+        <span
+          className={
+            currentTheme === "light"
+              ? "theme-toggle__icon-active"
+              : "theme-toggle__icon-inactive"
+          }
+        >
+          ☼
+        </span>
       </span>
       <span className="theme-toggle__label">
         {currentTheme === "dark" ? "Dark" : "Light"}
