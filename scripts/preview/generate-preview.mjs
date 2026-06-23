@@ -15,15 +15,16 @@ const PORT = 43151;
 const BASE = `http://127.0.0.1:${PORT}/status/`;
 
 // Strict 16:9 dimensions
-const DESKTOP = { w: 2560, h: 1440 };       // 16:9 landscape
-const MOBILE  = { w: 693, h: 390 };          // 16:9 landscape (phone on its side)
+const DESKTOP = { w: 2560, h: 1440 };       // 16:9 2K
+const MOBILE_CSS = { w: 400, h: 890 };       // CSS px (triggers mobile layout)
+const MOBILE_DSF = 3;                         // deviceScaleFactor → 1200×2670 physical px
 
 const snap = {
   generatedAt: "2026-06-23T08:00:00.000Z",
   dataSource: { kind: "upstream-postgres", lastQueryAt: "2026-06-23T08:00:00.000Z", lastQueryDurationMs: 18, lastErrorMessage: null },
   window: { seconds: 3600, from: "2026-06-23T07:00:00.000Z", to: "2026-06-23T08:00:00.000Z" },
   heartbeat: { bucketSeconds: 60, bucketCount: 60, from: "2026-06-23T07:00:00.000Z", to: "2026-06-23T08:00:00.000Z" },
-  summary: { totalModels: 4, availableModels: 3, degradedModels: 1, unavailableModels: 0, unknownModels: 0 },
+  summary: { totalModels: 6, availableModels: 4, degradedModels: 1, unavailableModels: 1, unknownModels: 0 },
   models: [
     m("gpt-5", "available", 0.99, 0.8, 3200, [
       ...b("available", 52, 5, 18, 1.0, 0.7), ...b("available", 8, 3, 10, 0.95, 0.9),
@@ -36,6 +37,12 @@ const snap = {
     ]),
     m("deepseek-r2", "available", 0.94, 1.4, 720, [
       ...b("available", 50, 3, 9, 0.93, 1.4), ...b("degraded", 10, 1, 4, 0.7, 2.0),
+    ]),
+    m("qwen3-max", "unavailable", 0.0, null, 0, [
+      ...b("unavailable", 60, 0, 0, 0, 0),
+    ]),
+    m("llama-4-scout", "available", 0.91, 1.3, 580, [
+      ...b("available", 45, 2, 7, 0.91, 1.3), ...b("degraded", 15, 1, 3, 0.6, 1.9),
     ]),
   ],
 };
@@ -155,17 +162,31 @@ async function main() {
     await pD.screenshot({ path: img.dd, clip: { x: 0, y: 0, width: DESKTOP.w, height: DESKTOP.h }, type: "png" });
     await cD.close();
 
-    // Mobile 16:9 landscape — viewport 693x390
+    // Mobile — CSS viewport 400x890 triggers mobile layout, deviceScaleFactor 3 → 1200x2670 physical px
     console.log("移动 Light...");
-    const { pg: pML, ctx: cML } = await makePage(browser, "light", { width: MOBILE.w, height: MOBILE.h });
+    const cML = await browser.newContext({ viewport: { width: MOBILE_CSS.w, height: MOBILE_CSS.h }, deviceScaleFactor: MOBILE_DSF, isMobile: true, hasTouch: true });
+    const pML = await cML.newPage();
+    await pML.route("**/status/api/pulse", async (r) => { await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(snap) }); });
+    await pML.goto(BASE, { waitUntil: "networkidle" });
+    await pML.waitForTimeout(2000);
+    await pML.waitForSelector(".model-card", { timeout: 10000 });
+    await pML.evaluate(() => document.documentElement.setAttribute("data-theme", "light"));
+    await pML.waitForTimeout(400);
     img.ml = t("ml.png");
-    await pML.screenshot({ path: img.ml, clip: { x: 0, y: 0, width: MOBILE.w, height: MOBILE.h }, type: "png" });
+    await pML.screenshot({ path: img.ml, fullPage: false, type: "png" });
     await cML.close();
 
     console.log("移动 Dark...");
-    const { pg: pMD, ctx: cMD } = await makePage(browser, "dark", { width: MOBILE.w, height: MOBILE.h });
+    const cMD = await browser.newContext({ viewport: { width: MOBILE_CSS.w, height: MOBILE_CSS.h }, deviceScaleFactor: MOBILE_DSF, isMobile: true, hasTouch: true });
+    const pMD = await cMD.newPage();
+    await pMD.route("**/status/api/pulse", async (r) => { await r.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(snap) }); });
+    await pMD.goto(BASE, { waitUntil: "networkidle" });
+    await pMD.waitForTimeout(2000);
+    await pMD.waitForSelector(".model-card", { timeout: 10000 });
+    await pMD.evaluate(() => document.documentElement.setAttribute("data-theme", "dark"));
+    await pMD.waitForTimeout(400);
     img.md = t("md.png");
-    await pMD.screenshot({ path: img.md, clip: { x: 0, y: 0, width: MOBILE.w, height: MOBILE.h }, type: "png" });
+    await pMD.screenshot({ path: img.md, fullPage: false, type: "png" });
     await cMD.close();
 
     // Compose
@@ -320,7 +341,7 @@ body{background:#f5f4ef;font-family:"Poppins",Arial,sans-serif;color:#141413;wid
   </div>
 
   <!-- Mobile 16:9 landscape -->
-  <div class="sl">Mobile · 2K (693 × 390 · 16:9 · Landscape)</div>
+  <div class="sl">Mobile · 2K (1200 × 2670 · 6.36" · Portrait)</div>
   <div class="mrow">
     <div class="mcol">
       <div class="ph">
