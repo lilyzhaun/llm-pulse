@@ -298,16 +298,12 @@ export class AggregationService {
     }
 
     this.lastSnapshot = {
-      ...buildSnapshotAvailabilityResponse(
-        store.readSnapshot(),
-        window,
-        {
-          kind: "memory-snapshot",
-          lastQueryAt: window.generatedAt,
-          lastQueryDurationMs: durationMs,
-          lastErrorMessage: this.queryState.getDataSourceBase().lastErrorMessage,
-        },
-      ),
+      ...buildSnapshotAvailabilityResponse(store.readSnapshot(), window, {
+        kind: "memory-snapshot",
+        lastQueryAt: window.generatedAt,
+        lastQueryDurationMs: durationMs,
+        lastErrorMessage: this.queryState.getDataSourceBase().lastErrorMessage,
+      }),
       dashboardTitle: this.buildDashboardTitle(),
     };
   }
