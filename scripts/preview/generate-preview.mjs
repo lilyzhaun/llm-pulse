@@ -15,9 +15,9 @@ const PORT = 43151;
 const BASE = `http://127.0.0.1:${PORT}/status/`;
 
 // Strict 16:9 dimensions
-const DESKTOP = { w: 2560, h: 1440 };       // 16:9 2K
+const DESKTOP = { w: 1280, h: 720 };         // CSS px (16:9), screenshot at native res
 const MOBILE_CSS = { w: 400, h: 780 };       // CSS px → 1200x2340 physical (compact)
-const MOBILE_DSF = 3;                         // deviceScaleFactor → 1200×2670 physical px
+const MOBILE_DSF = 3;                         // deviceScaleFactor → 1200x2340 physical px
 
 const snap = {
   generatedAt: "2026-06-23T08:00:00.000Z",
@@ -141,17 +141,21 @@ async function main() {
     // Detail: expand first card
     const hs = await pL.$$(".model-card__header");
     if (hs.length) { await hs[0].click(); await pL.waitForTimeout(600); }
+    const vw = DESKTOP.w, vh = DESKTOP.h;
+    const clipSafe = (el, pad) => {
+      const b = el.boundingBox ? null : null;
+    };
     const ce = await pL.$(".model-card");
     img.card = t("card.png");
-    if (ce) { const b = await ce.boundingBox(); await pL.screenshot({ path: img.card, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 } }); }
+    if (ce) { const b = await ce.boundingBox(); const x = Math.min(Math.max(0, b.x - 10), vw - 1), y = Math.min(Math.max(0, b.y - 10), vh - 1); await pL.screenshot({ path: img.card, clip: { x, y, width: Math.max(10, Math.min(vw - x, b.width + 20)), height: Math.max(10, Math.min(vh - y, b.height + 20)) } }); }
 
     const te = await pL.$(".toolbar");
     img.tb = t("tb.png");
-    if (te) { const b = await te.boundingBox(); await pL.screenshot({ path: img.tb, clip: { x: Math.max(0, b.x - 10), y: Math.max(0, b.y - 10), width: b.width + 20, height: b.height + 20 } }); }
+    if (te) { const b = await te.boundingBox(); const x = Math.min(Math.max(0, b.x - 10), vw - 1), y = Math.min(Math.max(0, b.y - 10), vh - 1); await pL.screenshot({ path: img.tb, clip: { x, y, width: Math.max(10, Math.min(vw - x, b.width + 20)), height: Math.max(10, Math.min(vh - y, b.height + 20)) } }); }
 
     const be = await pL.$(".heartbeat-board");
     img.beat = t("beat.png");
-    if (be) { const b = await be.boundingBox(); await pL.screenshot({ path: img.beat, clip: { x: Math.max(0, b.x - 14), y: Math.max(0, b.y - 14), width: b.width + 28, height: b.height + 28 } }); }
+    if (be) { const b = await be.boundingBox(); const x = Math.min(Math.max(0, b.x - 14), vw - 1), y = Math.min(Math.max(0, b.y - 14), vh - 1); await pL.screenshot({ path: img.beat, clip: { x, y, width: Math.max(10, Math.min(vw - x, b.width + 28)), height: Math.max(10, Math.min(vh - y, b.height + 28)) } }); }
 
     await cL.close();
 
@@ -266,12 +270,12 @@ body{background:#f5f4ef;font-family:"Poppins",Arial,sans-serif;color:#141413;wid
 .dmeta .nm{font-size:15px;font-weight:600;color:#141413}
 .dmeta .sp{font-family:"Lora",Georgia,serif;font-size:13px;color:#b0aea5}
 
-/* Mobile row — 16:9 landscape phones */
-.mrow{display:flex;gap:48px;margin-bottom:48px;align-items:flex-start}
-.mcol{display:flex;flex-direction:column;gap:20px}
+/* Mobile row — compact phone display */
+.mrow{display:flex;gap:48px;margin-bottom:48px;align-items:flex-start;justify-content:center}
+.mcol{display:flex;flex-direction:column;gap:16px;align-items:center}
 
-.ph{border-radius:24px;background:#d8d6cc;padding:10px;box-shadow:0 0 0 1px rgba(176,174,165,0.2),0 0 0 5px #faf9f5,0 0 0 6px rgba(176,174,165,0.1),0 32px 64px rgba(20,20,19,0.06);position:relative;overflow:hidden}
-.ph-c{border-radius:16px;overflow:hidden;line-height:0;position:relative}
+.ph{border-radius:22px;background:#d8d6cc;padding:7px;box-shadow:0 0 0 1px rgba(176,174,165,0.2),0 0 0 4px #faf9f5,0 0 0 5px rgba(176,174,165,0.1),0 24px 48px rgba(20,20,19,0.06);position:relative;overflow:hidden;width:280px}
+.ph-c{border-radius:14px;overflow:hidden;line-height:0;position:relative}
 .ph-c img{display:block;width:100%;height:auto}
 
 /* Detail row */
@@ -320,7 +324,7 @@ body{background:#f5f4ef;font-family:"Poppins",Arial,sans-serif;color:#141413;wid
   </header>
 
   <!-- Desktop -->
-  <div class="sl">Desktop · 2K (2560 × 1440 · 16:9)</div>
+  <div class="sl">Desktop · 16:9 (1280 × 720)</div>
   <div class="drow">
     <div class="dcol">
       <div class="mon">
