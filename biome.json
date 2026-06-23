@@ -10,8 +10,13 @@
       ".env.*",
       "!.env.example",
       "package-lock.json",
+      ".omo",
       ".sisyphus",
-      "test-results"
+      ".opencode",
+      ".codegraph",
+      "test-results",
+      "previews",
+      "scripts/preview"
     ]
   },
   "formatter": {

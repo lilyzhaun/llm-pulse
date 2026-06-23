@@ -50,7 +50,7 @@ LABEL org.opencontainers.image.title="llm-pulse" \
   org.opencontainers.image.description="LLM Pulse dashboard" \
   org.opencontainers.image.version="0.1.0" \
   org.opencontainers.image.licenses="MIT" \
-  org.opencontainers.image.source="https://github.com/exesim/llm-pulse"
+  org.opencontainers.image.source="https://github.com/lilyzhaun/llm-pulse"
 
 ENV NODE_ENV=production
 ENV PORT=43130

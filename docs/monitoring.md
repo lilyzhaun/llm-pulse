@@ -64,7 +64,7 @@ scrape_configs:
     scheme: https
     static_configs:
       - targets:
-          - ai.exesim.com
+          - your-domain.example.com
         labels:
           service: llm-pulse
 ```

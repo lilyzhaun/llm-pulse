@@ -4,11 +4,11 @@
 
 将 LLM Pulse 安全部署到：
 
-- `https://ai.exesim.com/status/`
+- `https://your-domain.example.com/status/`
 
 并确保：
 
-- 根站点 `https://ai.exesim.com/` 保持现有代理行为不变
+- 根站点 `https://your-domain.example.com/` 保持现有代理行为不变
 - LLM Pulse 仅占用 `/status` 前缀
 - API 仅暴露在 `/status/api/*`
 
@@ -129,16 +129,16 @@ PULSE_DB_CONN_TIMEOUT_MS=2000
 上线后至少检查：
 
 ```bash
-curl -I https://ai.exesim.com/status/
-curl https://ai.exesim.com/status/api/health
-curl https://ai.exesim.com/status/api/pulse
+curl -I https://your-domain.example.com/status/
+curl https://your-domain.example.com/status/api/health
+curl https://your-domain.example.com/status/api/pulse
 curl http://127.0.0.1:43130/status/api/metrics
 ```
 
 并手动确认：
 
-- `https://ai.exesim.com/` 仍返回旧站点
-- `https://ai.exesim.com/status/` 返回 LLM Pulse
+- `https://your-domain.example.com/` 仍返回旧站点
+- `https://your-domain.example.com/status/` 返回 LLM Pulse
 - 刷新 `/status/` 深层路径不出现 404
 - `health.upstreamDb.reachable=true`，除非正在验证数据库不可达降级
 - `pulse.dataSource.kind=upstream-postgres`，并包含模型级 `tokens`、`cost`、`rpm` 和 `tpm`

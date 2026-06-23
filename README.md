@@ -1,6 +1,6 @@
 # LLM Pulse
 
-[![CI](actions/workflows/ci.yml/badge.svg)](actions/workflows/ci.yml)
+[![CI](https://github.com/lilyzhaun/llm-pulse/actions/workflows/ci.yml/badge.svg)](https://github.com/lilyzhaun/llm-pulse/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Node.js 22](https://img.shields.io/badge/Node.js-22-339933.svg)](.nvmrc)
 
@@ -172,9 +172,9 @@ node apps/server/dist/index.js
 Nginx 反代示例见 `deploy/nginx-status.example.conf`。上线后至少检查：
 
 ```bash
-curl -I https://ai.exesim.com/status/
-curl https://ai.exesim.com/status/api/health
-curl https://ai.exesim.com/status/api/pulse
+curl -I https://your-domain.example.com/status/
+curl https://your-domain.example.com/status/api/health
+curl https://your-domain.example.com/status/api/pulse
 ```
 
 ## Architecture Overview

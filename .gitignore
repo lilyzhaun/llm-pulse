@@ -13,4 +13,10 @@ apps/server/data/*.bak.*
 npm-debug.log*
 test-results/
 .omo/
+.sisyphus/
+.opencode/
 .agent-browser/
+.codegraph
+*.tsbuildinfo
+previews/
+scripts/preview/

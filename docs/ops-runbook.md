@@ -1,6 +1,6 @@
 # 运维故障排查手册
 
-本文面向 LLM Pulse 生产运维，覆盖服务状态检查、健康检查、日志查看、重启和常见故障定位。示例以当前宿主机部署为准：服务名为 `llm-pulse`，BFF 监听端口为 `43130`，公开访问路径为 `https://ai.exesim.com/status/`。
+本文面向 LLM Pulse 生产运维，覆盖服务状态检查、健康检查、日志查看、重启和常见故障定位。示例以当前宿主机部署为准：服务名为 `llm-pulse`，BFF 监听端口为 `43130`，公开访问路径为 `https://your-domain.example.com/status/`。
 
 ## 快速判定
 
@@ -9,7 +9,7 @@
 ```bash
 systemctl is-active llm-pulse
 curl -f http://127.0.0.1:43130/status/api/health
-curl -f https://ai.exesim.com/status/api/pulse
+curl -f https://your-domain.example.com/status/api/pulse
 ```
 
 - `systemctl is-active` 不是 `active`：优先检查 systemd、环境变量、工作目录和端口占用。
@@ -52,7 +52,7 @@ curl -f http://127.0.0.1:43130/status/api/health
 公网探活：
 
 ```bash
-curl -f https://ai.exesim.com/status/api/health
+curl -f https://your-domain.example.com/status/api/health
 ```
 
 正常响应应为 JSON，并包含：
@@ -78,7 +78,7 @@ curl -f https://ai.exesim.com/status/api/health
 
 ```bash
 curl -f http://127.0.0.1:43130/status/api/pulse
-curl -f https://ai.exesim.com/status/api/pulse
+curl -f https://your-domain.example.com/status/api/pulse
 ```
 
 响应中至少应包含 `generatedAt`、`dataSource`、`window`、`heartbeat`、`summary` 和 `models`。如果 `health` 正常但 `pulse` 数据为空或长期不更新，按顺序检查：
@@ -244,7 +244,7 @@ systemctl restart llm-pulse
 ```bash
 systemctl is-active llm-pulse
 curl -f http://127.0.0.1:43130/status/api/health
-curl -f https://ai.exesim.com/status/api/pulse
+curl -f https://your-domain.example.com/status/api/pulse
 ```
 
 如果重启失败，立即查看最近日志：
@@ -327,13 +327,13 @@ ss -ltnp | grep ':43130'
 现象：
 
 - 本机 `http://127.0.0.1:43130/status/api/health` 正常。
-- 公网 `https://ai.exesim.com/status/api/health` 返回 404、502 或 504。
+- 公网 `https://your-domain.example.com/status/api/health` 返回 404、502 或 504。
 
 处理：
 
 1. 检查 Nginx 配置是否包含 `location = /status` 和 `location ^~ /status/`。
 2. 确认 `/status/*` 代理到当前 BFF 端口 `43130`。
-3. 确认根站点 `https://ai.exesim.com/` 的原有代理没有被覆盖。
+3. 确认根站点 `https://your-domain.example.com/` 的原有代理没有被覆盖。
 4. 修改配置后先执行 `nginx -t`，再 reload Nginx。
 
 ## 安全提醒
@@ -352,8 +352,8 @@ ss -ltnp | grep ':43130'
 ```bash
 systemctl is-active llm-pulse
 curl -f http://127.0.0.1:43130/status/api/health
-curl -f https://ai.exesim.com/status/api/health
-curl -f https://ai.exesim.com/status/api/pulse
+curl -f https://your-domain.example.com/status/api/health
+curl -f https://your-domain.example.com/status/api/pulse
 curl -f http://127.0.0.1:43130/status/api/metrics
 ```
 
