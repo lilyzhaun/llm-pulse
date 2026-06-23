@@ -900,23 +900,25 @@ input:focus-visible,
  * Model Grid — 移动端单列，640px+ 双列
  * ============================================================ */
 .model-grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: start;
+  display: block;
+  column-gap: var(--space-4);
 }
 
 @media (min-width: 640px) {
   .model-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: var(--space-4);
+    column-count: 2;
   }
 }
 
-@media (min-width: 1280px) {
+@media (min-width: 1024px) {
   .model-grid {
-    gap: var(--space-4);
+    column-gap: var(--space-4);
   }
+}
+
+.model-grid > .model-card {
+  break-inside: avoid;
+  margin-bottom: var(--space-4);
 }
 
 /* ============================================================
