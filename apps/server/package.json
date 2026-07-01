@@ -27,9 +27,9 @@
     "@types/node": "^20.11.30",
     "@types/pg": "^8.11.10",
     "@types/supertest": "^7.2.0",
-    "@vitest/coverage-v8": "^4.1.5",
+    "@vitest/coverage-v8": "^4.1.9",
     "supertest": "^7.2.2",
-    "tsx": "^4.7.1",
+    "tsx": "^4.22.4",
     "typescript": "^5.4.2",
     "vitest": "^4.1.5"
   }
