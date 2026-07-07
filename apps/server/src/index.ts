@@ -1,4 +1,3 @@
-import type { Server as HttpServer } from "node:http";
 import { createApp } from "./app.js";
 import { env } from "./config/env.js";
 import { logger } from "./lib/logger.js";
@@ -86,7 +85,7 @@ const server = app.listen(env.port, env.bindHost, () => {
     { host: env.bindHost, port: env.port },
     "llm-pulse BFF listening",
   );
-}) as unknown as HttpServer;
+});
 
 server.on("error", (error: NodeJS.ErrnoException) => {
   if (error.code === "EADDRINUSE") {

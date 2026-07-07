@@ -2,6 +2,10 @@ import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import Database from "better-sqlite3";
 import {
+  HEARTBEAT_BUCKET_COUNT,
+  HEARTBEAT_BUCKET_SECONDS,
+} from "../../config/constants.js";
+import {
   DDL_STATEMENTS,
   META_KEYS,
   PRAGMA_STATEMENTS,
@@ -93,7 +97,9 @@ export class SnapshotStore {
   }
 
   applyLogDelta(log: NormalizedLog): boolean {
-    const bucketStart = Math.floor(log.createdAt / 60) * 60;
+    const bucketStart =
+      Math.floor(log.createdAt / HEARTBEAT_BUCKET_SECONDS) *
+      HEARTBEAT_BUCKET_SECONDS;
     const inserted = this.requireProcessedLogStore().insertIfNew(
       log.id,
       log.createdAt,
@@ -107,7 +113,7 @@ export class SnapshotStore {
     return true;
   }
 
-  pruneOldBuckets(modelName: string, keepCount = 60): void {
+  pruneOldBuckets(modelName: string, keepCount = HEARTBEAT_BUCKET_COUNT): void {
     this.requireBucketStore().pruneOldBuckets(modelName, keepCount);
   }
 
@@ -138,8 +144,8 @@ export class SnapshotStore {
     const stored = this.getMeta(META_KEYS.SCHEMA_VERSION);
     if (stored === null) {
       this.setMeta(META_KEYS.SCHEMA_VERSION, String(SCHEMA_VERSION));
-      this.setMeta(META_KEYS.BUCKET_SECONDS, "60");
-      this.setMeta(META_KEYS.BUCKET_LIMIT, "60");
+      this.setMeta(META_KEYS.BUCKET_SECONDS, String(HEARTBEAT_BUCKET_SECONDS));
+      this.setMeta(META_KEYS.BUCKET_LIMIT, String(HEARTBEAT_BUCKET_COUNT));
       return;
     }
 

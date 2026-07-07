@@ -1,4 +1,8 @@
 import type { Logger } from "pino";
+import {
+  HEARTBEAT_BUCKET_COUNT,
+  HEARTBEAT_BUCKET_SECONDS,
+} from "../../config/constants.js";
 import { logger as defaultLogger } from "../../lib/logger.js";
 import { META_KEYS } from "./schema.js";
 import type { SnapshotStore } from "./store.js";
@@ -167,11 +171,13 @@ export const bootstrapSnapshot = async (
           continue;
         }
         processed += 1;
-        const bucketStart = Math.floor(log.createdAt / 60) * 60;
+        const bucketStart =
+          Math.floor(log.createdAt / HEARTBEAT_BUCKET_SECONDS) *
+          HEARTBEAT_BUCKET_SECONDS;
         const buckets = seenBuckets.get(log.modelName) ?? new Set<number>();
         buckets.add(bucketStart);
         seenBuckets.set(log.modelName, buckets);
-        if (buckets.size >= 60) {
+        if (buckets.size >= HEARTBEAT_BUCKET_COUNT) {
           remainingModels.delete(log.modelName);
         }
       }
@@ -187,7 +193,7 @@ export const bootstrapSnapshot = async (
   }
 
   for (const modelName of enabledModels) {
-    deps.store.pruneOldBuckets(modelName, 60);
+    deps.store.pruneOldBuckets(modelName, HEARTBEAT_BUCKET_COUNT);
   }
 
   const finishedAt = new Date().toISOString();
@@ -310,9 +316,9 @@ export const refreshIncremental = async (
     }
 
     for (const modelName of touchedModels) {
-      deps.store.pruneOldBuckets(modelName, 60);
+      deps.store.pruneOldBuckets(modelName, HEARTBEAT_BUCKET_COUNT);
     }
-    deps.store.pruneProcessedLogs(lowerCreatedAt - 60);
+    deps.store.pruneProcessedLogs(lowerCreatedAt - HEARTBEAT_BUCKET_SECONDS);
     const finishedAt = new Date().toISOString();
     setRefreshMeta(deps.store, observedMaxCreatedAt, observedMaxId, finishedAt);
 

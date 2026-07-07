@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 
 export default defineConfig({
   base: "/status/",
+  // plugin-react 5.x ships vite 8 types; project uses vite 6.x — cast bridges the skew.
   plugins: [react() as unknown as PluginOption],
   resolve: {
     alias: {

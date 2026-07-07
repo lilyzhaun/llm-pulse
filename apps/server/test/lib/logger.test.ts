@@ -8,15 +8,18 @@ describe("logger redaction", () => {
       writes.push(chunk.toString());
       return true;
     });
+  const savedLogLevel = process.env.LOG_LEVEL;
 
   afterEach(() => {
     writes.length = 0;
     writeSpy.mockClear();
+    process.env.LOG_LEVEL = savedLogLevel;
   });
 
   it("redacts sensitive top-level and nested fields while keeping safe fields intact", async () => {
     vi.resetModules();
     process.env.DATABASE_URL = "postgres://user:pass@localhost:5432/pulse";
+    process.env.LOG_LEVEL = "info";
     const { logger } = await import("../../src/lib/logger.js");
 
     logger.info(

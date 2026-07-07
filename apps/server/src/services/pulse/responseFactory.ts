@@ -1,25 +1,31 @@
-import type {
-  AvailabilityResponse,
-  ChannelAvailability,
-  HeartbeatBucket,
-  ModelAvailability,
-} from "@llm-pulse/shared";
-import {
-  HEARTBEAT_BUCKET_COUNT,
-  HEARTBEAT_BUCKET_SECONDS,
-} from "../../config/constants.js";
-import { buildHeartbeatSummary } from "../aggregation/heartbeat.js";
-import { statusFromCounts, statusOrder } from "../aggregation/status.js";
+import type { ChannelAvailability, HeartbeatBucket } from "@llm-pulse/shared";
+import { HEARTBEAT_BUCKET_SECONDS } from "../../config/constants.js";
+import { buildHeartbeatSummary } from "../../lib/heartbeatSummary.js";
+import { statusFromCounts } from "../../lib/status.js";
 import type {
   ChannelAggregate,
   ModelAggregate,
   UpstreamHeartbeatBucket,
 } from "../upstreamDb/index.js";
-import type {
+import {
+  type ExtendedAvailabilityResponse,
+  type LocalAvailabilityDataSource,
+  type QueryWindow,
+  buildEmptySummary,
+  buildHeartbeatWindow,
+  buildResponseWindow,
+  buildSummary,
+  compareChannels,
+  compareModels,
+  markSummaryDegraded,
+  successRate,
+} from "../shared/availabilityHelpers.js";
+
+export type {
   ExtendedAvailabilityResponse,
   LocalAvailabilityDataSource,
   QueryWindow,
-} from "../snapshot/responseBuilder.js";
+};
 
 const toIso = (epochMs: number | null): string | null =>
   epochMs === null ? null : new Date(epochMs).toISOString();
@@ -42,27 +48,19 @@ export class PulseResponseFactory {
           beatsByModel.get(model.modelName) ?? [],
         ),
       )
-      .sort(this.compareModels);
+      .sort(compareModels);
 
     return {
       generatedAt: window.generatedAt,
       dataSource,
-      window: {
-        from: new Date(
-          Math.max(
-            0,
-            window.toEpochSeconds -
-              HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
-          ) * 1000,
-        ).toISOString(),
-        to: new Date(window.toEpochSeconds * 1000).toISOString(),
-        seconds: HEARTBEAT_BUCKET_COUNT * HEARTBEAT_BUCKET_SECONDS,
-      },
-      heartbeat: this.buildResponseHeartbeat(
-        heartbeatBuckets,
+      window: buildResponseWindow(window),
+      heartbeat: buildHeartbeatWindow(
+        heartbeatBuckets.map((bucket) =>
+          Math.floor(bucket.bucketStartMs / 1000),
+        ),
         window.generatedAt,
       ),
-      summary: this.buildSummary(models),
+      summary: buildSummary(models),
       models,
     };
   }
@@ -86,7 +84,7 @@ export class PulseResponseFactory {
         ...lastSnapshot,
         generatedAt,
         dataSource,
-        summary: this.markSummaryDegraded(lastSnapshot.summary),
+        summary: markSummaryDegraded(lastSnapshot.summary),
       };
     }
 
@@ -104,7 +102,7 @@ export class PulseResponseFactory {
       successCount: model.successCount,
       errorCount: model.errorCount,
       totalCount: model.totalCount,
-      successRate: this.successRate(model.successCount, model.errorCount),
+      successRate: successRate(model.successCount, model.errorCount),
       averageLatencySeconds: model.latencyAvgSeconds,
       lastSeenAt: toIso(model.lastSeenAtMs),
       tokens: {
@@ -145,7 +143,7 @@ export class PulseResponseFactory {
         successCount: channel.successCount,
         errorCount: channel.errorCount,
         totalCount: channel.totalCount,
-        successRate: this.successRate(channel.successCount, channel.errorCount),
+        successRate: successRate(channel.successCount, channel.errorCount),
         averageLatencySeconds: channel.latencyAvgSeconds,
         lastSeenAt: toIso(channel.lastSeenAtMs),
         heartbeat: buildHeartbeatSummary(
@@ -157,11 +155,7 @@ export class PulseResponseFactory {
     }
 
     for (const channels of channelsByModel.values()) {
-      channels.sort(
-        (left, right) =>
-          right.totalCount - left.totalCount ||
-          left.channelName.localeCompare(right.channelName),
-      );
+      channels.sort(compareChannels);
     }
 
     return channelsByModel;
@@ -183,7 +177,7 @@ export class PulseResponseFactory {
         successCount: bucket.successCount,
         errorCount: bucket.errorCount,
         totalCount: bucket.totalCount,
-        successRate: this.successRate(bucket.successCount, bucket.errorCount),
+        successRate: successRate(bucket.successCount, bucket.errorCount),
         averageLatencySeconds: bucket.latencyAvgSeconds,
       });
       beatsByModel.set(bucket.modelName, beats);
@@ -196,71 +190,6 @@ export class PulseResponseFactory {
     }
 
     return beatsByModel;
-  }
-
-  private buildResponseHeartbeat(
-    heartbeatBuckets: UpstreamHeartbeatBucket[],
-    generatedAt: string,
-  ): AvailabilityResponse["heartbeat"] {
-    const observedBucketStarts = [
-      ...new Set(
-        heartbeatBuckets.map((bucket) =>
-          Math.floor(bucket.bucketStartMs / 1000),
-        ),
-      ),
-    ]
-      .sort((left, right) => left - right)
-      .slice(-HEARTBEAT_BUCKET_COUNT);
-
-    if (observedBucketStarts.length === 0) {
-      return {
-        bucketSeconds: HEARTBEAT_BUCKET_SECONDS,
-        bucketCount: 0,
-        from: generatedAt,
-        to: generatedAt,
-      };
-    }
-
-    const firstBucketStart = observedBucketStarts[0] ?? 0;
-    const lastBucketStart = observedBucketStarts.at(-1) ?? firstBucketStart;
-
-    return {
-      bucketSeconds: HEARTBEAT_BUCKET_SECONDS,
-      bucketCount: observedBucketStarts.length,
-      from: new Date(firstBucketStart * 1000).toISOString(),
-      to: new Date(
-        (lastBucketStart + HEARTBEAT_BUCKET_SECONDS) * 1000,
-      ).toISOString(),
-    };
-  }
-
-  private buildSummary(
-    models: ExtendedAvailabilityResponse["models"],
-  ): AvailabilityResponse["summary"] {
-    let availableModels = 0;
-    let degradedModels = 0;
-    let unavailableModels = 0;
-    let unknownModels = 0;
-
-    for (const model of models) {
-      if (model.status === "available") {
-        availableModels += 1;
-      } else if (model.status === "degraded") {
-        degradedModels += 1;
-      } else if (model.status === "unavailable") {
-        unavailableModels += 1;
-      } else {
-        unknownModels += 1;
-      }
-    }
-
-    return {
-      totalModels: models.length,
-      availableModels,
-      degradedModels,
-      unavailableModels,
-      unknownModels,
-    };
   }
 
   private buildEmptyResponse(
@@ -281,57 +210,8 @@ export class PulseResponseFactory {
         from: generatedAt,
         to: generatedAt,
       },
-      summary: {
-        totalModels: 0,
-        availableModels: 0,
-        degradedModels: 0,
-        unavailableModels: 0,
-        unknownModels: 0,
-      },
+      summary: buildEmptySummary(),
       models: [],
     };
-  }
-
-  private markSummaryDegraded(
-    summary: AvailabilityResponse["summary"],
-  ): AvailabilityResponse["summary"] {
-    if (summary.totalModels === 0) {
-      return summary;
-    }
-
-    return {
-      totalModels: summary.totalModels,
-      availableModels: 0,
-      degradedModels: summary.totalModels,
-      unavailableModels: 0,
-      unknownModels: 0,
-    };
-  }
-
-  private successRate(successCount: number, errorCount: number): number {
-    const totalCount = successCount + errorCount;
-    return totalCount === 0 ? 0 : successCount / totalCount;
-  }
-
-  private compareModels(
-    left: ModelAvailability,
-    right: ModelAvailability,
-  ): number {
-    const rightLastSeenAt = right.lastSeenAt ? Date.parse(right.lastSeenAt) : 0;
-    const leftLastSeenAt = left.lastSeenAt ? Date.parse(left.lastSeenAt) : 0;
-
-    if (rightLastSeenAt !== leftLastSeenAt) {
-      return rightLastSeenAt - leftLastSeenAt;
-    }
-
-    const statusRank = statusOrder(left.status) - statusOrder(right.status);
-    if (statusRank !== 0) {
-      return statusRank;
-    }
-
-    return (
-      right.totalCount - left.totalCount ||
-      left.modelName.localeCompare(right.modelName)
-    );
   }
 }

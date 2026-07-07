@@ -137,19 +137,16 @@ export const createApp = () => {
   app.use("/status/api/pulse", pulseRouter);
 
   if (hasFrontendDist) {
-    app.use((request: Request, _response: Response, next: NextFunction) => {
-      const responseLike = _response as unknown as {
-        setHeader: (name: string, value: string) => void;
-      };
+    app.use((request: Request, response: Response, next: NextFunction) => {
       if (request.path === "/status/sw.js") {
-        responseLike.setHeader("Cache-Control", "no-cache");
-        responseLike.setHeader("Service-Worker-Allowed", "/status/");
+        response.setHeader("Cache-Control", "no-cache");
+        response.setHeader("Service-Worker-Allowed", "/status/");
       } else if (request.path === "/status/manifest.webmanifest") {
-        responseLike.setHeader(
+        response.setHeader(
           "Content-Type",
           "application/manifest+json; charset=utf-8",
         );
-        responseLike.setHeader("Cache-Control", "public, max-age=300");
+        response.setHeader("Cache-Control", "public, max-age=300");
       }
       next();
     });

@@ -5,7 +5,7 @@ import {
   formatQuota,
   formatRate,
   formatTokens,
-} from "./formatters";
+} from "./format";
 
 describe("formatLatency", () => {
   it.each([

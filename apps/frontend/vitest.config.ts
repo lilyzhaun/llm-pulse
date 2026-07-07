@@ -4,6 +4,7 @@ import type { PluginOption } from "vite";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
+  // plugin-react 5.x ships vite 8 types; project uses vite 6.x — cast bridges the skew.
   plugins: [react() as unknown as PluginOption],
   resolve: {
     alias: {

@@ -1,4 +1,8 @@
 import type Database from "better-sqlite3";
+import {
+  HEARTBEAT_BUCKET_COUNT,
+  HEARTBEAT_BUCKET_SECONDS,
+} from "../../../config/constants.js";
 import type {
   ChannelBucketRow,
   ModelBucketRow,
@@ -87,7 +91,9 @@ export class BucketStore {
   constructor(private readonly db: Database.Database) {}
 
   applyLogDelta(log: NormalizedLog): void {
-    const bucketStart = Math.floor(log.createdAt / 60) * 60;
+    const bucketStart =
+      Math.floor(log.createdAt / HEARTBEAT_BUCKET_SECONDS) *
+      HEARTBEAT_BUCKET_SECONDS;
     const isSuccess = log.type === 2;
     const isError = log.type === 5;
     const isCounted = isSuccess || isError;
@@ -116,7 +122,7 @@ export class BucketStore {
     });
   }
 
-  pruneOldBuckets(modelName: string, keepCount = 60): void {
+  pruneOldBuckets(modelName: string, keepCount = HEARTBEAT_BUCKET_COUNT): void {
     const recent = this.db
       .prepare<[string, number], BucketStartRow>(
         "SELECT bucket_start FROM model_buckets WHERE model_name = ? ORDER BY bucket_start DESC LIMIT ?",

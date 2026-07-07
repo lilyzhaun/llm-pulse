@@ -1,6 +1,5 @@
 import type { ChannelAvailability } from "@llm-pulse/shared";
-import { formatPercent } from "../lib/format";
-import { formatLatency } from "../lib/formatters";
+import { formatLatency, formatPercent } from "../lib/format";
 import { StatusBadge } from "./StatusBadge";
 
 export interface PulseRowProps {

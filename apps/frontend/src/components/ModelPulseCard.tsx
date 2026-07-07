@@ -7,13 +7,13 @@ import {
   useRef,
   useState,
 } from "react";
-import { formatPercent } from "../lib/format";
 import {
   formatLatencyWithLabel,
+  formatPercent,
   formatQuota,
   formatRate,
   formatTokens,
-} from "../lib/formatters";
+} from "../lib/format";
 import { useHeartbeatSlotCount } from "../contexts/HeartbeatSlotContext";
 import { StatusBadge } from "./StatusBadge";
 

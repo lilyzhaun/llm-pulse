@@ -4,6 +4,11 @@ import { fileURLToPath } from "node:url";
 
 type NodeEnv = "development" | "test" | "production";
 
+/**
+ * Minimal .env loader for non-production environments. Supports only simple
+ * KEY=VALUE lines (no quotes, no multi-line, no escaping). For complex .env
+ * files, use a dedicated dotenv package instead.
+ */
 const loadLocalEnv = (): void => {
   const currentDir = dirname(fileURLToPath(import.meta.url));
   const envPath = resolve(currentDir, "../../../../.env");
