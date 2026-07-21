@@ -43,12 +43,27 @@ function formatRelativeTimestamp(value: string | null) {
 
   const date = new Date(value);
 
-  return Number.isNaN(date.getTime())
-    ? "暂无 Request"
-    : `最近一次 Request : ${date.toLocaleTimeString("zh-CN", {
-        hour: "2-digit",
-        minute: "2-digit",
-      })}`;
+  if (Number.isNaN(date.getTime())) {
+    return "暂无 Request";
+  }
+
+  const now = new Date();
+  const isToday =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+
+  const timePart = date.toLocaleTimeString("zh-CN", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  if (isToday) {
+    return `最近一次 Request : ${timePart}`;
+  }
+
+  const datePart = `${date.getMonth() + 1}/${date.getDate()}`;
+  return `最近一次 Request : ${datePart} ${timePart}`;
 }
 
 function formatBeatTime(value: string) {
