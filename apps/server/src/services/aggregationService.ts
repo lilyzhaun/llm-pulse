@@ -11,6 +11,7 @@ import {
 import {
   buildSnapshotAvailabilityResponse,
   type ExtendedAvailabilityResponse,
+  type LocalAvailabilityDataSource,
   type QueryWindow,
 } from "./snapshot/responseBuilder.js";
 import { refreshIncremental } from "./snapshot/refreshService.js";
@@ -130,7 +131,18 @@ export class AggregationService {
           : await this.runUpstreamRefresh(window, queryStartedAt);
 
       this.lastSnapshot = response;
-      this.queryState.recordQuerySuccess(window.generatedAt, durationMs);
+      if (
+        response.dataSource.kind === "memory-snapshot" &&
+        response.dataSource.lastErrorMessage
+      ) {
+        this.queryState.recordQueryFailure(
+          new Error(response.dataSource.lastErrorMessage),
+          window.generatedAt,
+          durationMs,
+        );
+      } else {
+        this.queryState.recordQuerySuccess(window.generatedAt, durationMs);
+      }
       return response;
     } catch (error) {
       const durationMs = elapsedMsSince(queryStartedAt);
@@ -183,8 +195,8 @@ export class AggregationService {
         this.cachedSystemName = systemName;
       }
 
-      const snapshotResponse = buildSnapshotAvailabilityResponse(
-        store.readSnapshot(),
+      return this.buildSnapshotOutcome(
+        store,
         window,
         {
           kind: "upstream-postgres",
@@ -192,24 +204,63 @@ export class AggregationService {
           lastQueryDurationMs: durationMs,
           lastErrorMessage: null,
         },
-      );
-
-      return {
         durationMs,
-        response: {
-          ...snapshotResponse,
-          dashboardTitle: this.buildDashboardTitle(),
-        },
-      };
+      );
     } catch (error) {
       incrementSnapshotErrors("refresh");
       this.snapshotState.markSnapshotRefreshResult(false);
+      const scrubbed = scrubPgError(error);
       logger.warn(
-        { error: scrubPgError(error) },
-        "Snapshot refresh failed; serving fallback response",
+        { error: scrubbed },
+        "Snapshot refresh failed; serving local snapshot data",
       );
+
+      if (store.isReady()) {
+        const durationMs = elapsedMsSince(queryStartedAt);
+        const lastErrorMessage =
+          scrubbed &&
+          typeof scrubbed === "object" &&
+          "message" in scrubbed &&
+          typeof scrubbed.message === "string"
+            ? scrubbed.message
+            : "Snapshot refresh failed";
+
+        return this.buildSnapshotOutcome(
+          store,
+          window,
+          {
+            kind: "memory-snapshot",
+            lastQueryAt: window.generatedAt,
+            lastQueryDurationMs: durationMs,
+            lastErrorMessage,
+          },
+          durationMs,
+        );
+      }
+
       throw error;
     }
+  }
+
+  private buildSnapshotOutcome(
+    store: SnapshotStore,
+    window: QueryWindow,
+    dataSource: LocalAvailabilityDataSource,
+    durationMs: number,
+  ): RefreshOutcome {
+    const snapshotResponse = buildSnapshotAvailabilityResponse(
+      store.readSnapshot(),
+      window,
+      dataSource,
+    );
+
+    return {
+      durationMs,
+      response: {
+        ...snapshotResponse,
+        dashboardTitle: this.buildDashboardTitle(),
+      },
+    };
   }
 
   private async runUpstreamRefresh(

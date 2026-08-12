@@ -15,14 +15,15 @@
     "format": "biome format --write .",
     "format:check": "biome format .",
     "test": "npm run test --workspaces --if-present",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "rebuild:native": "npm rebuild better-sqlite3"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.4",
     "@playwright/test": "^1.59.1"
   },
   "engines": {
-    "node": ">=22.0.0",
+    "node": "22.x",
     "npm": ">=10.0.0"
   }
 }
